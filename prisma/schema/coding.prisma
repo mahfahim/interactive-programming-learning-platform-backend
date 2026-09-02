@@ -1,0 +1,46 @@
+model CodingLesson {
+  id               String           @id @default(uuid())
+  lessonId         String           @unique
+  lesson           Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  problemStatement String
+  inputFormat      String
+  outputFormat     String
+  timeLimitMs      Int
+  memoryLimitKb    Int
+  testCases        CodingTestCase[]
+  answers          CodingAnswer[]
+
+  @@map("coding_lessons")
+}
+
+model CodingTestCase {
+  id             String       @id @default(uuid())
+  codingLessonId String
+  codingLesson   CodingLesson @relation(fields: [codingLessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  inputData      String
+  expectedOutput String
+  isHidden       Boolean      @default(false)
+  displayOrder   Int
+
+  @@index([codingLessonId])
+  @@map("coding_test_cases")
+}
+
+model CodingAnswer {
+  id                   String              @id @default(uuid())
+  userId               String
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  codingLessonId       String
+  codingLesson         CodingLesson        @relation(fields: [codingLessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  language             ProgrammingLanguage
+  submittedCode        String
+  status               SubmissionStatus
+  runtimeMs            Int?
+  memoryUsedKb         Int?
+  passedTestCasesCount Int
+  submittedAt          DateTime            @default(now())
+
+  @@index([userId])
+  @@index([codingLessonId])
+  @@map("coding_answers")
+}

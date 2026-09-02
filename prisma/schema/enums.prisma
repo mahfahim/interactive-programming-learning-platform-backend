@@ -1,0 +1,85 @@
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum AuthProvider {
+  GOOGLE
+  CREDENTIAL
+}
+
+enum SocialPlatform {
+  GITHUB
+  LINKEDIN
+  TWITTER
+  FACEBOOK
+  YOUTUBE
+  INSTAGRAM
+  WEBSITE
+  OTHER
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Language {
+  ENGLISH
+  BENGALI
+}
+
+enum LessonType {
+  VIDEO
+  ARTICLE
+  QUIZ
+  CODING
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+  LOVE
+  HELPFUL
+  CELEBRATE
+  THINKING
+}
+
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  COMPILATION_ERROR
+  RUNTIME_ERROR
+}
+
+enum ProgrammingLanguage {
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  JAVA
+  CPP
+  C
+  GO
+  RUST
+  PHP
+  CSHARP
+}

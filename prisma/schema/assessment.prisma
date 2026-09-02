@@ -1,0 +1,78 @@
+model Assignment {
+  id           String                 @id @default(uuid())
+  title        String
+  instructions String
+  dueDate      DateTime
+  lessonId     String                 @unique
+  lesson       Lesson                 @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  submissions  AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id                 String     @id @default(uuid())
+  assignmentId       String
+  assignment         Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId             String
+  user               User       @relation("SubmittedAssignments", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fileUrl            String
+  submittedAt        DateTime   @default(now())
+  scoreObtained      Decimal?
+  instructorFeedback String?
+  gradedByUserId     String?
+  gradedByUser       User?      @relation("GradedAssignments", fields: [gradedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  gradedAt           DateTime?
+
+  @@unique([userId, assignmentId])
+  @@index([assignmentId])
+  @@index([userId])
+  @@index([gradedByUserId])
+  @@map("assignment_submissions")
+}
+
+model Grade {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  totalScore   Decimal
+  calculatedAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("grades")
+}
+
+model Certificate {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  certificateUid String   @unique
+  issuedAt       DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("certificates")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([userId])
+  @@map("feedbacks")
+}

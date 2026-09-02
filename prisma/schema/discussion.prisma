@@ -1,0 +1,72 @@
+model DiscussionThread {
+  id            String                     @id @default(uuid())
+  lessonId      String
+  lesson        Lesson                     @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        String
+  user          User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title         String
+  body          String
+  commentCount  Int                        @default(0)
+  reactionCount Int                        @default(0)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  comments      DiscussionComment[]
+  reactions     DiscussionThreadReaction[]
+
+  @@index([lessonId])
+  @@index([userId])
+  @@map("discussion_threads")
+}
+
+model DiscussionComment {
+  id              String                      @id @default(uuid())
+  threadId        String
+  thread          DiscussionThread            @relation(fields: [threadId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId          String
+  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parentCommentId String?
+  parentComment   DiscussionComment?          @relation("Replies", fields: [parentCommentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  replies         DiscussionComment[]         @relation("Replies")
+  body            String
+  replyCount      Int                         @default(0)
+  reactionCount   Int                         @default(0)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  isDeleted       Boolean                     @default(false)
+  reactions       DiscussionCommentReaction[]
+
+  @@index([threadId])
+  @@index([userId])
+  @@index([parentCommentId])
+  @@map("discussion_comments")
+}
+
+model DiscussionThreadReaction {
+  id           String           @id @default(uuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  threadId     String
+  thread       DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reactionType ReactionType
+  createdAt    DateTime         @default(now())
+
+  @@unique([userId, threadId])
+  @@index([threadId])
+  @@index([userId])
+  @@map("discussion_thread_reactions")
+}
+
+model DiscussionCommentReaction {
+  id           String            @id @default(uuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  commentId    String
+  comment      DiscussionComment @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reactionType ReactionType
+  createdAt    DateTime          @default(now())
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("discussion_comment_reactions")
+}

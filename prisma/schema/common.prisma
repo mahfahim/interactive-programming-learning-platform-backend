@@ -1,0 +1,48 @@
+model Country {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  divisions Division[]
+
+  @@map("countries")
+}
+
+model Division {
+  id        String     @id @default(uuid())
+  countryId String
+  country   Country    @relation(fields: [countryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  name      String
+  districts District[]
+
+  @@index([countryId])
+  @@map("divisions")
+}
+
+model District {
+  id         String   @id @default(uuid())
+  divisionId String
+  division   Division @relation(fields: [divisionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  name       String
+  cities     City[]
+
+  @@index([divisionId])
+  @@map("districts")
+}
+
+model City {
+  id               String            @id @default(uuid())
+  districtId       String
+  district         District          @relation(fields: [districtId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  name             String
+  userDescriptions UserDescription[]
+
+  @@index([districtId])
+  @@map("cities")
+}
+
+model Skill {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  userSkills UserSkill[]
+
+  @@map("skills")
+}

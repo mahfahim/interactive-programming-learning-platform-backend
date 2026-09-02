@@ -1,0 +1,116 @@
+model User {
+  id                    String                      @id @default(uuid())
+  role                  Role                        @default(STUDENT)
+  name                  String?
+  email                 String                      @unique
+  status                UserStatus                  @default(ACTIVE)
+  password              String?
+  googleId              String?                     @unique
+  authProvider          AuthProvider                @default(CREDENTIAL)
+  emailVerified         Boolean                     @default(false)
+  needPasswordChange    Boolean                     @default(false)
+  imageUrl              String?
+  imagePublicId         String?
+  isPro                 Boolean                     @default(false)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  isDeleted             Boolean                     @default(false)
+  deletedAt             DateTime?
+  description           UserDescription?
+  enrollments           Enrollment[]
+  lessonProgress        LessonProgress[]
+  quizAttempts          QuizAttempt[]
+  codingAnswers         CodingAnswer[]
+  assignmentSubmissions AssignmentSubmission[]      @relation("SubmittedAssignments")
+  gradedAssignments     AssignmentSubmission[]      @relation("GradedAssignments")
+  discussionThreads     DiscussionThread[]
+  discussionComments    DiscussionComment[]
+  threadReactions       DiscussionThreadReaction[]
+  commentReactions      DiscussionCommentReaction[]
+  grades                Grade[]
+  certificates          Certificate[]
+  feedbacks             Feedback[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model UserDescription {
+  userId      String           @id
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bio         String?
+  cityId      String?
+  city        City?            @relation(fields: [cityId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  socials     UserSocial[]
+  educations  UserEducation[]
+  experiences UserExperience[]
+  websites    UserWebsite[]
+  skills      UserSkill[]
+
+  @@index([cityId])
+  @@map("user_descriptions")
+}
+
+model UserSocial {
+  id                String          @id @default(uuid())
+  userDescriptionId String
+  userDescription   UserDescription @relation(fields: [userDescriptionId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  platform          SocialPlatform
+  url               String
+
+  @@index([userDescriptionId])
+  @@map("user_socials")
+}
+
+model UserEducation {
+  id                String          @id @default(uuid())
+  userDescriptionId String
+  userDescription   UserDescription @relation(fields: [userDescriptionId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  institution       String
+  degree            String
+  fieldOfStudy      String
+  startDate         DateTime
+  endDate           DateTime?
+
+  @@index([userDescriptionId])
+  @@map("user_educations")
+}
+
+model UserExperience {
+  id                String          @id @default(uuid())
+  userDescriptionId String
+  userDescription   UserDescription @relation(fields: [userDescriptionId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  company           String
+  position          String
+  startDate         DateTime
+  endDate           DateTime?
+  description       String?
+
+  @@index([userDescriptionId])
+  @@map("user_experiences")
+}
+
+model UserWebsite {
+  id                String          @id @default(uuid())
+  userDescriptionId String
+  userDescription   UserDescription @relation(fields: [userDescriptionId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  title             String
+  url               String
+
+  @@index([userDescriptionId])
+  @@map("user_websites")
+}
+
+model UserSkill {
+  userDescriptionId String
+  skillId           String
+  proficiencyLevel  ProficiencyLevel @default(BEGINNER)
+  userDescription   UserDescription  @relation(fields: [userDescriptionId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  skill             Skill            @relation(fields: [skillId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userDescriptionId, skillId])
+  @@index([skillId])
+  @@map("user_skills")
+}

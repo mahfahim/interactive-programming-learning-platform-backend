@@ -1,0 +1,153 @@
+model Enrollment {
+  id         String   @id @default(uuid())
+  userId     String
+  courseId   String
+  enrolledAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  lessonId    String
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_progresses")
+}
+
+model Course {
+  id              String             @id @default(uuid())
+  title           String
+  slug            String             @unique
+  coverImageUrl   String?
+  enrollmentCount Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  description     CourseDescription?
+  enrollments     Enrollment[]
+  superModules    SuperModule[]
+  grades          Grade[]
+  certificates    Certificate[]
+  feedbacks       Feedback[]
+
+  @@map("courses")
+}
+
+model CourseDescription {
+  courseId         String                  @id
+  course           Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  shortDescription String
+  fullDescription  String
+  level            CourseLevel
+  language         Language
+  learningOutcomes CourseLearningOutcome[]
+  prerequisites    CoursePrerequisite[]
+
+  @@map("course_descriptions")
+}
+
+model CourseLearningOutcome {
+  id                  String            @id @default(uuid())
+  courseDescriptionId String
+  courseDescription   CourseDescription @relation(fields: [courseDescriptionId], references: [courseId], onDelete: Cascade, onUpdate: Cascade)
+  outcomeText         String
+  displayOrder        Int
+
+  @@index([courseDescriptionId])
+  @@map("course_learning_outcomes")
+}
+
+model CoursePrerequisite {
+  id                  String            @id @default(uuid())
+  courseDescriptionId String
+  courseDescription   CourseDescription @relation(fields: [courseDescriptionId], references: [courseId], onDelete: Cascade, onUpdate: Cascade)
+  prerequisiteText    String
+  displayOrder        Int
+
+  @@index([courseDescriptionId])
+  @@map("course_prerequisites")
+}
+
+model SuperModule {
+  id           String   @id @default(uuid())
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title        String
+  displayOrder Int
+  modules      Module[]
+
+  @@index([courseId])
+  @@map("super_modules")
+}
+
+model Module {
+  id            String      @id @default(uuid())
+  superModuleId String
+  superModule   SuperModule @relation(fields: [superModuleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title         String
+  displayOrder  Int
+  lessons       Lesson[]
+
+  @@index([superModuleId])
+  @@map("modules")
+}
+
+model Lesson {
+  id           String             @id @default(uuid())
+  moduleId     String
+  module       Module             @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title        String
+  lessonType   LessonType
+  displayOrder Int
+  isPro        Boolean            @default(false)
+  progress     LessonProgress[]
+  video        VideoLesson?
+  article      ArticleLesson?
+  quiz         QuizLesson?
+  coding       CodingLesson?
+  threads      DiscussionThread[]
+  assignment   Assignment?
+
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+model VideoLesson {
+  lessonId        String @id
+  lesson          Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  videoUrl        String
+  durationSeconds Int
+
+  @@map("video_lessons")
+}
+
+model ArticleLesson {
+  lessonId String           @id
+  lesson   Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sections ArticleSection[]
+
+  @@map("article_lessons")
+}
+
+model ArticleSection {
+  id              String        @id @default(uuid())
+  articleLessonId String
+  articleLesson   ArticleLesson @relation(fields: [articleLessonId], references: [lessonId], onDelete: Cascade, onUpdate: Cascade)
+  content         Json
+  displayOrder    Int
+
+  @@index([articleLessonId])
+  @@map("article_sections")
+}

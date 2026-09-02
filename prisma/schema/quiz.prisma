@@ -1,0 +1,65 @@
+model QuizLesson {
+  id        String         @id @default(uuid())
+  lessonId  String         @unique
+  lesson    Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quiz_lessons")
+}
+
+model QuizQuestion {
+  id           String              @id @default(uuid())
+  quizLessonId String
+  quizLesson   QuizLesson          @relation(fields: [quizLessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  questionText String
+  displayOrder Int
+  options      QuizOption[]
+  answers      QuizAttemptAnswer[]
+
+  @@index([quizLessonId])
+  @@map("quiz_questions")
+}
+
+model QuizOption {
+  id           String              @id @default(uuid())
+  questionId   String
+  question     QuizQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  optionText   String
+  isCorrect    Boolean
+  displayOrder Int
+  answers      QuizAttemptAnswer[]
+
+  @@index([questionId])
+  @@map("quiz_options")
+}
+
+model QuizAttempt {
+  id           String              @id @default(uuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  quizLessonId String
+  quizLesson   QuizLesson          @relation(fields: [quizLessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  score        Decimal
+  attemptedAt  DateTime            @default(now())
+  answers      QuizAttemptAnswer[]
+
+  @@index([userId])
+  @@index([quizLessonId])
+  @@map("quiz_attempts")
+}
+
+model QuizAttemptAnswer {
+  id               String       @id @default(uuid())
+  quizAttemptId    String
+  quizAttempt      QuizAttempt  @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  questionId       String
+  question         QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  selectedOptionId String
+  selectedOption   QuizOption   @relation(fields: [selectedOptionId], references: [id], onUpdate: Cascade)
+
+  @@unique([quizAttemptId, questionId])
+  @@index([quizAttemptId])
+  @@index([questionId])
+  @@map("quiz_attempt_answers")
+}
