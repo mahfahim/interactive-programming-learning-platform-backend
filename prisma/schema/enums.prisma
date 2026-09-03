@@ -82,3 +82,11 @@ enum ProgrammingLanguage {
   PHP
   CSHARP
 }
+
+enum PaymentStatus {
+  UNPAID
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}

@@ -11,45 +11,79 @@ import {
 	ReactionType,
 	SubmissionStatus,
 	ProgrammingLanguage,
+	PaymentStatus,
 } from "../src/generated/prisma/client";
 
 async function main() {
 	console.log("Seeding database...");
 
-	// 1. Geography
-	const country = await prisma.country.create({
-		data: { name: "Bangladesh" },
+	// 1. Geography (findFirst + create ব্যবহার করা হয়েছে যেন Unique Constraint এরর না আসে)
+	let country = await prisma.country.findFirst({
+		where: { name: "Bangladesh" },
 	});
+	if (!country) {
+		country = await prisma.country.create({
+			data: { name: "Bangladesh" },
+		});
+	}
 
-	const division = await prisma.division.create({
-		data: {
-			name: "Dhaka Division",
-			countryId: country.id,
-		},
+	let division = await prisma.division.findFirst({
+		where: { name: "Dhaka Division" },
 	});
+	if (!division) {
+		division = await prisma.division.create({
+			data: {
+				name: "Dhaka Division",
+				countryId: country.id,
+			},
+		});
+	}
 
-	const district = await prisma.district.create({
-		data: {
-			name: "Dhaka District",
-			divisionId: division.id,
-		},
+	let district = await prisma.district.findFirst({
+		where: { name: "Dhaka District" },
 	});
+	if (!district) {
+		district = await prisma.district.create({
+			data: {
+				name: "Dhaka District",
+				divisionId: division.id,
+			},
+		});
+	}
 
-	const city = await prisma.city.create({
-		data: {
-			name: "Dhaka North",
-			districtId: district.id,
-		},
+	let city = await prisma.city.findFirst({
+		where: { name: "Dhaka North" },
 	});
+	if (!city) {
+		city = await prisma.city.create({
+			data: {
+				name: "Dhaka North",
+				districtId: district.id,
+			},
+		});
+	}
 
 	// 2. Skills
-	const skillJS = await prisma.skill.create({
-		data: { name: "JavaScript" },
+	let skillJS = await prisma.skill.findFirst({
+		where: { name: "JavaScript" },
 	});
+	if (!skillJS) {
+		skillJS = await prisma.skill.create({
+			data: { name: "JavaScript" },
+		});
+	}
 
-	// 3. Users (Admin, Instructor, Student)
-	const adminUser = await prisma.user.create({
-		data: {
+	// 3. Users (email ফিল্ডটি Unique হওয়ায় এখানে upsert সঠিকভাবে কাজ করবে)
+	const adminUser = await prisma.user.upsert({
+		where: { email: "admin@example.com" },
+		update: {
+			name: "System Admin",
+			role: Role.ADMIN,
+			status: UserStatus.ACTIVE,
+			authProvider: AuthProvider.CREDENTIAL,
+			emailVerified: true,
+		},
+		create: {
 			name: "System Admin",
 			email: "admin@example.com",
 			role: Role.ADMIN,
@@ -59,8 +93,16 @@ async function main() {
 		},
 	});
 
-	const instructorUser = await prisma.user.create({
-		data: {
+	const instructorUser = await prisma.user.upsert({
+		where: { email: "instructor@example.com" },
+		update: {
+			name: "John Instructor",
+			role: Role.INSTRUCTOR,
+			status: UserStatus.ACTIVE,
+			authProvider: AuthProvider.CREDENTIAL,
+			emailVerified: true,
+		},
+		create: {
 			name: "John Instructor",
 			email: "instructor@example.com",
 			role: Role.INSTRUCTOR,
@@ -70,25 +112,54 @@ async function main() {
 		},
 	});
 
-	const studentUser = await prisma.user.create({
-		data: {
+	const studentUser = await prisma.user.upsert({
+		where: { email: "student@example.com" },
+		update: {
+			name: "Rahim Student",
+			role: Role.STUDENT,
+			status: UserStatus.ACTIVE,
+			authProvider: AuthProvider.CREDENTIAL,
+			emailVerified: true,
+		},
+		create: {
 			name: "Rahim Student",
 			email: "student@example.com",
 			role: Role.STUDENT,
 			status: UserStatus.ACTIVE,
 			authProvider: AuthProvider.CREDENTIAL,
 			emailVerified: true,
-			isPro: true,
 		},
 	});
 
 	// 4. User Description & Sub-models
-	const userDescription = await prisma.userDescription.create({
-		data: {
+	const userDescription = await prisma.userDescription.upsert({
+		where: { userId: studentUser.id },
+		update: {
+			bio: "Aspiring Full Stack Web Developer",
+			cityId: city.id,
+		},
+		create: {
 			userId: studentUser.id,
 			bio: "Aspiring Full Stack Web Developer",
 			cityId: city.id,
 		},
+	});
+
+	// পুনরায় সিড চালানোর জন্য পূর্বের সাব-ডেটা ক্লিন করা হচ্ছে
+	await prisma.userSocial.deleteMany({
+		where: { userDescriptionId: userDescription.userId },
+	});
+	await prisma.userEducation.deleteMany({
+		where: { userDescriptionId: userDescription.userId },
+	});
+	await prisma.userExperience.deleteMany({
+		where: { userDescriptionId: userDescription.userId },
+	});
+	await prisma.userWebsite.deleteMany({
+		where: { userDescriptionId: userDescription.userId },
+	});
+	await prisma.userSkill.deleteMany({
+		where: { userDescriptionId: userDescription.userId },
 	});
 
 	await prisma.userSocial.create({
@@ -136,14 +207,28 @@ async function main() {
 		},
 	});
 
-	// 5. Course Structure
-	const course = await prisma.course.create({
-		data: {
+	// 5. Course Structure (slug ফিল্ডটি Unique)
+	const course = await prisma.course.upsert({
+		where: { slug: "full-stack-web-dev" },
+		update: {
+			title: "Full Stack Web Development",
+			enrollmentCount: 1,
+		},
+		create: {
 			title: "Full Stack Web Development",
 			slug: "full-stack-web-dev",
 			enrollmentCount: 1,
 		},
 	});
+
+	// পুনরায় সিড দেওয়ার সময় কোর্সের চাইল্ড ডেটা ক্লিয়ার করা
+	await prisma.payment.deleteMany({ where: { courseId: course.id } });
+	await prisma.enrollment.deleteMany({ where: { courseId: course.id } });
+	await prisma.grade.deleteMany({ where: { courseId: course.id } });
+	await prisma.certificate.deleteMany({ where: { courseId: course.id } });
+	await prisma.feedback.deleteMany({ where: { courseId: course.id } });
+	await prisma.superModule.deleteMany({ where: { courseId: course.id } });
+	await prisma.courseDescription.deleteMany({ where: { courseId: course.id } });
 
 	const courseDescription = await prisma.courseDescription.create({
 		data: {
@@ -188,14 +273,16 @@ async function main() {
 		},
 	});
 
-	// 6. Lessons & Specialized Lesson Types
-	// Video Lesson
+	// 6. Lessons (Demo / Free vs Pro Lessons)
+
+	// Video Lesson (Demo / Free Lesson)
 	const videoLessonObj = await prisma.lesson.create({
 		data: {
 			moduleId: moduleObj.id,
 			title: "Introduction to Node.js",
 			lessonType: LessonType.VIDEO,
 			displayOrder: 1,
+			isPro: false,
 		},
 	});
 
@@ -207,13 +294,14 @@ async function main() {
 		},
 	});
 
-	// Article Lesson
+	// Article Lesson (Pro Lesson)
 	const articleLessonObj = await prisma.lesson.create({
 		data: {
 			moduleId: moduleObj.id,
 			title: "Understanding Async/Await",
 			lessonType: LessonType.ARTICLE,
 			displayOrder: 2,
+			isPro: true,
 		},
 	});
 
@@ -231,13 +319,14 @@ async function main() {
 		},
 	});
 
-	// Quiz Lesson
+	// Quiz Lesson (Pro Lesson)
 	const quizLessonObj = await prisma.lesson.create({
 		data: {
 			moduleId: moduleObj.id,
 			title: "JS Basics Quiz",
 			lessonType: LessonType.QUIZ,
 			displayOrder: 3,
+			isPro: true,
 		},
 	});
 
@@ -273,13 +362,14 @@ async function main() {
 		},
 	});
 
-	// Coding Lesson
+	// Coding Lesson (Pro Lesson)
 	const codingLessonObj = await prisma.lesson.create({
 		data: {
 			moduleId: moduleObj.id,
 			title: "Sum of Two Numbers Problem",
 			lessonType: LessonType.CODING,
 			displayOrder: 4,
+			isPro: true,
 		},
 	});
 
@@ -303,13 +393,14 @@ async function main() {
 		},
 	});
 
-	// Assignment Lesson
+	// Assignment Lesson (Pro Lesson)
 	const assignmentLessonObj = await prisma.lesson.create({
 		data: {
 			moduleId: moduleObj.id,
 			title: "Module 1 Capstone Assignment",
 			lessonType: LessonType.ARTICLE,
 			displayOrder: 5,
+			isPro: true,
 		},
 	});
 
@@ -322,11 +413,28 @@ async function main() {
 		},
 	});
 
-	// 7. Enrollment & Progress
+	// 7. Payment & Enrollment (Course-specific Pro Access)
+	await prisma.payment.create({
+		data: {
+			userId: studentUser.id,
+			courseId: course.id,
+			status: PaymentStatus.COMPLETED,
+			amount: 4500.0,
+			currency: "BDT",
+			paymentGateway: "bkash",
+			merchantInvoiceNumber: `INV-${Date.now()}`,
+			bkashPaymentId: "PAY123456789",
+			bkashTrxId: "TRX987654321",
+			payerReference: studentUser.email,
+			paidAt: new Date(),
+		},
+	});
+
 	await prisma.enrollment.create({
 		data: {
 			userId: studentUser.id,
 			courseId: course.id,
+			isPaid: true,
 		},
 	});
 
@@ -395,7 +503,7 @@ async function main() {
 		data: {
 			userId: studentUser.id,
 			courseId: course.id,
-			certificateUid: "CERT-FULLSTACK-2026-001",
+			certificateUid: `CERT-FULLSTACK-2026-${Date.now()}`,
 		},
 	});
 

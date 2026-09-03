@@ -11,13 +11,13 @@ model User {
   needPasswordChange    Boolean                     @default(false)
   imageUrl              String?
   imagePublicId         String?
-  isPro                 Boolean                     @default(false)
   createdAt             DateTime                    @default(now())
   updatedAt             DateTime                    @updatedAt
   isDeleted             Boolean                     @default(false)
   deletedAt             DateTime?
   description           UserDescription?
   enrollments           Enrollment[]
+  payments              Payment[]
   lessonProgress        LessonProgress[]
   quizAttempts          QuizAttempt[]
   codingAnswers         CodingAnswer[]
