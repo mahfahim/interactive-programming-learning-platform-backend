@@ -7,7 +7,6 @@ import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
-	
 	const payload = req.body;
 
 	await AuthService.registerUser(payload);

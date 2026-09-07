@@ -25,6 +25,7 @@ router.post(
 	AuthController.loginUser,
 );
 router.get(
+	// remove hobe , user module ae jabe
 	"/me",
 	auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
 	AuthController.getMe,
