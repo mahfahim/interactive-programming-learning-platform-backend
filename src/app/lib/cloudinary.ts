@@ -1,3 +1,4 @@
+// src/app/lib/cloudinary.ts
 import { v2 as Cloudinary } from "cloudinary";
 import config from "../config";
 

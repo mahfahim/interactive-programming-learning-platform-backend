@@ -30,6 +30,8 @@ router.get(
 	auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
 	AuthController.getMe,
 );
+
+router.post("/logout", AuthController.logout);
 router.post("/refresh-token", AuthController.refreshToken);
 router.post("/google", AuthController.googleLogin);
 router.post(

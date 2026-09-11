@@ -180,10 +180,37 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const logout = catchAsync(async (req: Request, res: Response) => {
+	const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+	if (refreshToken) {
+		await AuthService.logout(refreshToken);
+	}
+
+	res.clearCookie("accessToken", {
+		httpOnly: true,
+		secure: false,
+		sameSite: "none",
+	});
+	res.clearCookie("refreshToken", {
+		httpOnly: true,
+		secure: false,
+		sameSite: "none",
+	});
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Logged out successfully",
+		data: null,
+	});
+});
+
 export const AuthController = {
 	registerPatient,
 	verifyPatientEmail,
 	loginUser,
+	logout,
 	getMe,
 	refreshToken,
 	googleLogin,

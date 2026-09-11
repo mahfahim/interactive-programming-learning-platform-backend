@@ -64,7 +64,7 @@ const executeCode = async (
 			"Content-Type": "application/json",
 		};
 
-		// শুধুমাত্র Key এবং Host থাকলে Headers এ যোগ করা হবে
+
 		if (judgeApiKey) {
 			headers["X-RapidAPI-Key"] = judgeApiKey;
 		}
@@ -88,7 +88,7 @@ const executeCode = async (
 		);
 
 		if (!response.ok) {
-			// RapidAPI বা Judge0 এর আসল Error Message পড়া হচ্ছে
+		
 			const errorBody = await response.text();
 			console.error("Judge0 Execution Error Details:", errorBody);
 

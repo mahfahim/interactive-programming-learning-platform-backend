@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { StatusCodes } from "http-status-codes";
+import { checkProAccess } from "../../utils/checkProAccess";
 import { assertModuleExists } from "../module/module.service";
 import type {
 	ICreateLessonInput,
@@ -16,12 +17,56 @@ export const assertLessonExists = async (id: string) => {
 	return lesson;
 };
 
+// Helper function to fetch course context and verify Pro access
+const verifyLessonAccess = async (
+	lessonId: string,
+	userId?: string,
+	userRole?: string,
+) => {
+	const lesson = await prisma.lesson.findUnique({
+		where: { id: lessonId },
+		select: {
+			id: true,
+			isPro: true,
+			module: {
+				select: {
+					superModule: {
+						select: {
+							courseId: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!lesson) throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+
+	const courseId = lesson.module.superModule.courseId;
+
+	// Triggers 402 PAYMENT_REQUIRED if user lacks access
+	await checkProAccess({
+		userId,
+		userRole,
+		courseId,
+		isPro: lesson.isPro,
+	});
+
+	return lesson;
+};
+
 const createLesson = async (payload: ICreateLessonInput) => {
 	await assertModuleExists(payload.moduleId);
 	return prisma.lesson.create({ data: payload });
 };
 
-const getLessonById = async (id: string) => {
+const getLessonById = async (
+	id: string,
+	userId?: string,
+	userRole?: string,
+) => {
+	await verifyLessonAccess(id, userId, userRole);
+
 	const lesson = await prisma.lesson.findUnique({
 		where: { id },
 		include: {
@@ -45,8 +90,13 @@ const deleteLesson = async (id: string) => {
 	return prisma.lesson.delete({ where: { id } });
 };
 
-const getVideoLesson = async (lessonId: string) => {
-	await assertLessonExists(lessonId);
+const getVideoLesson = async (
+	lessonId: string,
+	userId?: string,
+	userRole?: string,
+) => {
+	await verifyLessonAccess(lessonId, userId, userRole);
+
 	const video = await prisma.videoLesson.findUnique({ where: { lessonId } });
 	if (!video)
 		throw new AppError(
@@ -68,8 +118,13 @@ const upsertVideoLesson = async (
 	});
 };
 
-const getArticleLesson = async (lessonId: string) => {
-	await assertLessonExists(lessonId);
+const getArticleLesson = async (
+	lessonId: string,
+	userId?: string,
+	userRole?: string,
+) => {
+	await verifyLessonAccess(lessonId, userId, userRole);
+
 	const article = await prisma.articleLesson.findUnique({
 		where: { lessonId },
 		include: { sections: { orderBy: { displayOrder: "asc" } } },
@@ -116,8 +171,13 @@ const syncArticleLesson = async (
 	});
 };
 
-const getLessonProgress = async (userId: string, lessonId: string) => {
-	await assertLessonExists(lessonId);
+const getLessonProgress = async (
+	userId: string,
+	lessonId: string,
+	userRole?: string,
+) => {
+	await verifyLessonAccess(lessonId, userId, userRole);
+
 	return prisma.lessonProgress.findUnique({
 		where: { userId_lessonId: { userId, lessonId } },
 	});
@@ -127,8 +187,10 @@ const updateLessonProgress = async (
 	userId: string,
 	lessonId: string,
 	payload: IUpdateLessonProgressInput,
+	userRole?: string,
 ) => {
-	await assertLessonExists(lessonId);
+	await verifyLessonAccess(lessonId, userId, userRole);
+
 	const completedAt = payload.isCompleted ? new Date() : null;
 
 	return prisma.lessonProgress.upsert({

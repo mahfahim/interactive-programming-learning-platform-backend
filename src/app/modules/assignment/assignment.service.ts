@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { assertLessonExists, verifyLessonAccess } from "../lesson/lesson.utils";
 import type {
 	IAssignmentCreatePayload,
 	IAssignmentGradePayload,
@@ -11,13 +12,7 @@ import type {
 } from "./assignment.interface";
 
 const createAssignment = async (payload: IAssignmentCreatePayload) => {
-	const lessonExists = await prisma.lesson.findUnique({
-		where: { id: payload.lessonId },
-	});
-
-	if (!lessonExists) {
-		throw new AppError(httpStatus.NOT_FOUND, "Lesson not found");
-	}
+	await assertLessonExists(payload.lessonId);
 
 	const existingAssignment = await prisma.assignment.findUnique({
 		where: { lessonId: payload.lessonId },
@@ -40,7 +35,13 @@ const createAssignment = async (payload: IAssignmentCreatePayload) => {
 	});
 };
 
-const getAssignmentByLessonId = async (lessonId: string) => {
+const getAssignmentByLessonId = async (
+	lessonId: string,
+	userId?: string,
+	userRole?: string,
+) => {
+	await verifyLessonAccess(lessonId, userId, userRole);
+
 	const assignment = await prisma.assignment.findUnique({
 		where: { lessonId },
 		select: {
@@ -78,6 +79,8 @@ const getAssignmentById = async (id: string, user: IRequestUser) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
 
+	await verifyLessonAccess(assignment.lessonId, user.userId, user.role);
+
 	const mySubmission = await prisma.assignmentSubmission.findUnique({
 		where: {
 			userId_assignmentId: {
@@ -108,7 +111,6 @@ const updateAssignment = async (
 	const assignmentExists = await prisma.assignment.findUnique({
 		where: { id },
 	});
-
 	if (!assignmentExists) {
 		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
@@ -127,67 +129,52 @@ const deleteAssignment = async (id: string) => {
 	const assignmentExists = await prisma.assignment.findUnique({
 		where: { id },
 	});
-
 	if (!assignmentExists) {
 		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
 
-	return await prisma.assignment.delete({
-		where: { id },
-	});
+	return await prisma.assignment.delete({ where: { id } });
 };
 
 const submitAssignment = async (
 	user: IRequestUser,
 	payload: IAssignmentSubmitPayload,
 ) => {
-	const assignmentExists = await prisma.assignment.findUnique({
+	const assignment = await prisma.assignment.findUnique({
 		where: { id: payload.assignmentId },
 	});
 
-	if (!assignmentExists) {
+	if (!assignment) {
 		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
 
-	const existingSubmission = await prisma.assignmentSubmission.findUnique({
+	await verifyLessonAccess(assignment.lessonId, user.userId, user.role);
+
+	return await prisma.assignmentSubmission.upsert({
 		where: {
 			userId_assignmentId: {
 				userId: user.userId,
 				assignmentId: payload.assignmentId,
 			},
 		},
-	});
-
-	if (existingSubmission) {
-		return await prisma.assignmentSubmission.update({
-			where: {
-				userId_assignmentId: {
-					userId: user.userId,
-					assignmentId: payload.assignmentId,
-				},
-			},
-			data: {
-				fileUrls: payload.fileUrls,
-				submittedAt: new Date(),
-				scoreObtained: null,
-				instructorFeedback: null,
-				gradedByUserId: null,
-				gradedAt: null,
-			},
-		});
-	}
-
-	return await prisma.assignmentSubmission.create({
-		data: {
+		create: {
 			assignmentId: payload.assignmentId,
 			userId: user.userId,
 			fileUrls: payload.fileUrls,
+		},
+		update: {
+			fileUrls: payload.fileUrls,
+			submittedAt: new Date(),
+			scoreObtained: null,
+			instructorFeedback: null,
+			gradedByUserId: null,
+			gradedAt: null,
 		},
 	});
 };
 
 const getMySubmission = async (user: IRequestUser, assignmentId: string) => {
-	const submission = await prisma.assignmentSubmission.findUnique({
+	return await prisma.assignmentSubmission.findUnique({
 		where: {
 			userId_assignmentId: {
 				userId: user.userId,
@@ -206,24 +193,19 @@ const getMySubmission = async (user: IRequestUser, assignmentId: string) => {
 			gradedAt: true,
 		},
 	});
-
-	return submission || null;
 };
 
 const getAssignmentSubmissions = async (assignmentId: string) => {
 	const assignmentExists = await prisma.assignment.findUnique({
 		where: { id: assignmentId },
 	});
-
 	if (!assignmentExists) {
 		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
 
 	return await prisma.assignmentSubmission.findMany({
 		where: { assignmentId },
-		orderBy: {
-			submittedAt: "desc",
-		},
+		orderBy: { submittedAt: "desc" },
 		select: {
 			id: true,
 			fileUrls: true,
@@ -233,11 +215,7 @@ const getAssignmentSubmissions = async (assignmentId: string) => {
 			gradedByUserId: true,
 			gradedAt: true,
 			user: {
-				select: {
-					id: true,
-					name: true,
-					email: true,
-				},
+				select: { id: true, name: true, email: true },
 			},
 		},
 	});

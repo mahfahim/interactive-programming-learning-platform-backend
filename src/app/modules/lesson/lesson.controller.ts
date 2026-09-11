@@ -17,7 +17,14 @@ const createLesson = catchAsync(async (req: Request, res: Response) => {
 
 const getLessonById = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const result = await LessonService.getLessonById(id as string);
+	const userId = req.user?.userId;
+	const userRole = req.user?.role;
+
+	const result = await LessonService.getLessonById(
+		id as string,
+		userId,
+		userRole,
+	);
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
@@ -53,7 +60,14 @@ const deleteLesson = catchAsync(async (req: Request, res: Response) => {
 
 const getVideoLesson = catchAsync(async (req: Request, res: Response) => {
 	const { lessonId } = req.params;
-	const result = await LessonService.getVideoLesson(lessonId as string);
+	const userId = req.user?.userId;
+	const userRole = req.user?.role;
+
+	const result = await LessonService.getVideoLesson(
+		lessonId as string,
+		userId,
+		userRole,
+	);
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
@@ -80,7 +94,14 @@ const upsertVideoLesson = catchAsync(async (req: Request, res: Response) => {
 
 const getArticleLesson = catchAsync(async (req: Request, res: Response) => {
 	const { lessonId } = req.params;
-	const result = await LessonService.getArticleLesson(lessonId as string);
+	const userId = req.user?.userId;
+	const userRole = req.user?.role;
+
+	const result = await LessonService.getArticleLesson(
+		lessonId as string,
+		userId,
+		userRole,
+	);
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
@@ -107,10 +128,13 @@ const syncArticleLesson = catchAsync(async (req: Request, res: Response) => {
 
 const getLessonProgress = catchAsync(async (req: Request, res: Response) => {
 	const userId = req.user!.userId;
+	const userRole = req.user?.role;
 	const { lessonId } = req.params;
+
 	const result = await LessonService.getLessonProgress(
 		userId,
 		lessonId as string,
+		userRole,
 	);
 
 	sendResponse(res, {
@@ -123,11 +147,14 @@ const getLessonProgress = catchAsync(async (req: Request, res: Response) => {
 
 const updateLessonProgress = catchAsync(async (req: Request, res: Response) => {
 	const userId = req.user!.userId;
+	const userRole = req.user?.role;
 	const { lessonId } = req.params;
+
 	const result = await LessonService.updateLessonProgress(
 		userId,
 		lessonId as string,
 		req.body,
+		userRole,
 	);
 
 	sendResponse(res, {

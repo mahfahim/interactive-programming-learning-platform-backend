@@ -1,8 +1,6 @@
 import { SubmissionStatus } from "../../../generated/prisma/client";
 
-/**
- * Output Normalize করা
- */
+
 export const normalizeOutput = (output?: string): string => {
     if (!output) return "";
     return output
@@ -14,9 +12,7 @@ export const normalizeOutput = (output?: string): string => {
         .trim();
 };
 
-/**
- * একাধিক টেস্ট কেসের স্টেটাস থেকে ফাইনাল স্টেটাস নির্ধারণ
- */
+
 export const calculateAggregateStatus = (
 	statuses: SubmissionStatus[],
 ): SubmissionStatus => {

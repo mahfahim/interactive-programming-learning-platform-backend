@@ -15,14 +15,13 @@ import { CourseRoutes } from "./app/modules/course/course.route";
 import { SuperModuleRoutes } from "./app/modules/superModule/superModule.route";
 import { ModuleRoutes } from "./app/modules/module/module.route";
 import { LessonRoutes } from "./app/modules/lesson/lesson.route";
-
-// import { AnalyticsRoutes } from "./app/modules/analytics/analytics.route";
 import { AssignmentRoutes } from "./app/modules/assignment/assignment.route";
 import { DiscussionRoutes } from "./app/modules/discussion/discussion.route";
 import { JudgeRoutes } from "./app/modules/judge/judge.route";
 import { QuizRoutes } from "./app/modules/quiz/quiz.route";
 import { PaymentRoutes } from "./app/modules/payment/payment.route";
 import { EnrollmentRoutes } from "./app/modules/enrollment/enrollment.routes";
+import { CertificateRoutes } from "./app/modules/certificate/certificate.route";
 
 const app: Application = express();
 
@@ -48,7 +47,7 @@ app.use("/api/v1/judge", JudgeRoutes);
 app.use("/api/v1/quizzes", QuizRoutes);
 app.use("/api/v1/assignments", AssignmentRoutes);
 app.use("/api/v1/discussions", DiscussionRoutes);
-// app.use("/api/v1/analytics", AnalyticsRoutes);
+app.use("/api/v1/certificates", CertificateRoutes);
 app.use("/api/v1/payment", PaymentRoutes);
 app.use("/api/v1/enrollments", EnrollmentRoutes);
 
