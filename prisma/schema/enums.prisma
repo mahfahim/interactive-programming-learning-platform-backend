@@ -49,6 +49,7 @@ enum LessonType {
   ARTICLE
   QUIZ
   CODING
+  ASSIGNMENT
 }
 
 enum ReactionType {

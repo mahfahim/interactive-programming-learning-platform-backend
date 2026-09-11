@@ -11,11 +11,17 @@ model Payment {
   amount   Decimal       @db.Decimal(10, 2)
   currency String        @default("BDT")
 
-  paymentGateway        String @default("bkash")
+  paymentGateway        String @default("SSLCOMMERZ") // BKASH | SSLCOMMERZ
   merchantInvoiceNumber String @unique
 
-  bkashPaymentId String?   @unique
+  // bKash Fields
+  bkashPaymentId String? @unique
   bkashTrxId     String?
+
+  // SSLCommerz Fields
+  sslSessionKey String?
+  sslValId      String?
+
   payerReference String? // user email
   paidAt         DateTime?
 

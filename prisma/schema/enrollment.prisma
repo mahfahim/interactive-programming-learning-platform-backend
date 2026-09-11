@@ -1,0 +1,14 @@
+model Enrollment {
+    id         String   @id @default(uuid())
+    userId     String
+    courseId   String
+    isPaid     Boolean  @default(false)
+    enrolledAt DateTime @default(now())
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+    @@unique([userId, courseId])
+    @@index([userId])
+    @@index([courseId])
+    @@map("enrollments")
+}
