@@ -1,17 +1,15 @@
 import { SubmissionStatus } from "../../../generated/prisma/client";
 
-
 export const normalizeOutput = (output?: string): string => {
-    if (!output) return "";
-    return output
-        .replace(/\r\n/g, "\n")
-        .replace(/\r/g, "\n")
-        .split("\n")
-        .map((line) => line.trimEnd())
-        .join("\n")
-        .trim();
+	if (!output) return "";
+	return output
+		.replace(/\r\n/g, "\n")
+		.replace(/\r/g, "\n")
+		.split("\n")
+		.map((line) => line.trimEnd())
+		.join("\n")
+		.trim();
 };
-
 
 export const calculateAggregateStatus = (
 	statuses: SubmissionStatus[],
