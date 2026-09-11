@@ -61,18 +61,4 @@ model Certificate {
   @@map("certificates")
 }
 
-model Feedback {
-  id        String   @id @default(uuid())
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
 
-  @@unique([userId, courseId])
-  @@index([courseId])
-  @@index([userId])
-  @@map("feedbacks")
-}

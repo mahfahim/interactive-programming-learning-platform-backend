@@ -29,7 +29,6 @@ model Course {
   superModules    SuperModule[]
   grades          Grade[]
   certificates    Certificate[]
-  feedbacks       Feedback[]
   instructorId    String?
   instructor      User?              @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 

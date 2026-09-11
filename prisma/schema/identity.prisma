@@ -30,7 +30,6 @@ model User {
   commentReactions      DiscussionCommentReaction[]
   grades                Grade[]
   certificates          Certificate[]
-  feedbacks             Feedback[]
 
   @@index([role])
   @@map("users")
