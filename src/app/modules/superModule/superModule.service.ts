@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { StatusCodes } from "http-status-codes";
-import { assertCourseExists } from "../course/course.service";
+import { assertCourseExists } from "../course/course.utils";
 import type {
 	ICreateSuperModuleInput,
 	IUpdateSuperModuleInput,

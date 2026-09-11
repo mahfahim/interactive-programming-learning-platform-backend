@@ -7,8 +7,8 @@ import type {
 	IUpdateCourseInput,
 	ICourseQueryParams,
 } from "./course.interface";
+import { assertCourseExists } from "./course.utils";
 
-// Reusable Include Schema
 export const defaultCourseDetailsInclude = {
 	description: {
 		include: {
@@ -37,12 +37,6 @@ export const defaultCourseDetailsInclude = {
 			},
 		},
 	},
-};
-
-export const assertCourseExists = async (id: string) => {
-	const course = await prisma.course.findUnique({ where: { id } });
-	if (!course) throw new AppError(StatusCodes.NOT_FOUND, "Course not found");
-	return course;
 };
 
 const createCourse = async (payload: ICreateCourseInput) => {
@@ -244,144 +238,6 @@ const deleteCourse = async (id: string) => {
 	return prisma.course.delete({ where: { id } });
 };
 
-const enrollCourse = async (userId: string, courseId: string) => {
-	await assertCourseExists(courseId);
-
-	const existingEnrollment = await prisma.enrollment.findUnique({
-		where: {
-			userId_courseId: { userId, courseId },
-		},
-	});
-
-	if (existingEnrollment) {
-		throw new AppError(
-			StatusCodes.CONFLICT,
-			"User is already enrolled in this course",
-		);
-	}
-
-	return prisma.$transaction(async (tx) => {
-		const enrollment = await tx.enrollment.create({
-			data: {
-				userId,
-				courseId,
-				isPaid: true,
-			},
-		});
-
-		await tx.course.update({
-			where: { id: courseId },
-			data: {
-				enrollmentCount: { increment: 1 },
-			},
-		});
-
-		return enrollment;
-	});
-};
-
-const getMyEnrolledCourses = async (userId: string) => {
-	const enrollments = await prisma.enrollment.findMany({
-		where: { userId },
-		include: {
-			course: {
-				select: {
-					id: true,
-					title: true,
-					slug: true,
-					coverImageUrl: true,
-				},
-			},
-		},
-		orderBy: { enrolledAt: "desc" },
-	});
-
-	if (enrollments.length === 0) return [];
-
-	const courseIds = enrollments.map((e) => e.courseId);
-
-	const [allLessons, completedProgresses] = await Promise.all([
-		prisma.lesson.findMany({
-			where: {
-				module: {
-					superModule: {
-						courseId: { in: courseIds },
-					},
-				},
-			},
-			select: {
-				id: true,
-				module: {
-					select: {
-						superModule: {
-							select: { courseId: true },
-						},
-					},
-				},
-			},
-		}),
-		prisma.lessonProgress.findMany({
-			where: {
-				userId,
-				isCompleted: true,
-				lesson: {
-					module: {
-						superModule: {
-							courseId: { in: courseIds },
-						},
-					},
-				},
-			},
-			select: {
-				lessonId: true,
-				lesson: {
-					select: {
-						module: {
-							select: {
-								superModule: {
-									select: { courseId: true },
-								},
-							},
-						},
-					},
-				},
-			},
-		}),
-	]);
-
-	const totalLessonsMap = new Map<string, number>();
-	const completedLessonsMap = new Map<string, number>();
-
-	allLessons.forEach((lesson) => {
-		const cId = lesson.module.superModule.courseId;
-		totalLessonsMap.set(cId, (totalLessonsMap.get(cId) || 0) + 1);
-	});
-
-	completedProgresses.forEach((progress) => {
-		const cId = progress.lesson.module.superModule.courseId;
-		completedLessonsMap.set(cId, (completedLessonsMap.get(cId) || 0) + 1);
-	});
-
-	return enrollments.map((enrollment) => {
-		const totalLessons = totalLessonsMap.get(enrollment.courseId) || 0;
-		const completedLessons = completedLessonsMap.get(enrollment.courseId) || 0;
-		const progressPercentage =
-			totalLessons > 0
-				? Number(((completedLessons / totalLessons) * 100).toFixed(2))
-				: 0;
-
-		return {
-			enrollmentId: enrollment.id,
-			enrolledAt: enrollment.enrolledAt,
-			isPaid: enrollment.isPaid,
-			course: enrollment.course,
-			progressPercentage,
-			completedLessons,
-			totalLessons,
-		};
-	});
-};
-
 export const CourseService = {
 	createCourse,
 	getCourses,
@@ -389,6 +245,4 @@ export const CourseService = {
 	getCourseById,
 	updateCourse,
 	deleteCourse,
-	enrollCourse,
-	getMyEnrolledCourses,
 };

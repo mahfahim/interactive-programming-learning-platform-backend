@@ -60,18 +60,3 @@ export interface IPaginatedResponse<T> {
 	data: T[];
 	meta: IPaginatedMeta;
 }
-
-export interface IEnrolledCourseProgressResponse {
-	enrollmentId: string;
-	enrolledAt: Date;
-	isPaid: boolean;
-	course: {
-		id: string;
-		title: string;
-		slug: string;
-		coverImageUrl: string | null;
-	};
-	progressPercentage: number;
-	completedLessons: number;
-	totalLessons: number;
-}

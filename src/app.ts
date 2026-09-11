@@ -1,25 +1,28 @@
 // src/app.ts
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import type { Application, Request, Response } from "express";
+import type { Application, Request, Response, NextFunction } from "express";
 import express from "express";
 import httpStatus from "http-status";
 import config from "./app/config";
+import { getBkashIdToken } from "./app/lib/bkash";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import { notFound } from "./app/middlewares/notFound";
 
 import { AuthRoutes } from "./app/modules/auth/auth.route";
+import { UserRoutes } from "./app/modules/user/user.route";
+import { CourseRoutes } from "./app/modules/course/course.route";
+import { SuperModuleRoutes } from "./app/modules/superModule/superModule.route";
+import { ModuleRoutes } from "./app/modules/module/module.route";
+import { LessonRoutes } from "./app/modules/lesson/lesson.route";
 
 // import { AnalyticsRoutes } from "./app/modules/analytics/analytics.route";
-// import { AssignmentRoutes } from "./app/modules/assignment/assignment.route";
-// import { CourseRoutes } from "./app/modules/course/course.route";
-// import { DiscussionRoutes } from "./app/modules/discussion/discussion.route";
-// import { JudgeRoutes } from "./app/modules/judge/judge.route";
-// import { LessonRoutes } from "./app/modules/lesson/lesson.route";
-// import { ModuleRoutes } from "./app/modules/module/module.route";
-// import { ProfileRoutes } from "./app/modules/user/user.route";
-// import { QuizRoutes } from "./app/modules/quiz/quiz.route";
-// import { SuperModuleRoutes } from "./app/modules/superModule/superModule.route";
+import { AssignmentRoutes } from "./app/modules/assignment/assignment.route";
+import { DiscussionRoutes } from "./app/modules/discussion/discussion.route";
+import { JudgeRoutes } from "./app/modules/judge/judge.route";
+import { QuizRoutes } from "./app/modules/quiz/quiz.route";
+import { PaymentRoutes } from "./app/modules/payment/payment.route";
+import { EnrollmentRoutes } from "./app/modules/enrollment/enrollment.routes";
 
 const app: Application = express();
 
@@ -36,23 +39,40 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
-
-// app.use("/api/v1/user", userRouter);
-// app.use("/api/v1/profiles", ProfileRoutes);
-// app.use("/api/v1/courses", CourseRoutes);
-// app.use("/api/v1/super-modules", SuperModuleRoutes);
-// app.use("/api/v1/modules", ModuleRoutes);
-// app.use("/api/v1/lessons", LessonRoutes);
-// app.use("/api/v1/judge", JudgeRoutes);
-// app.use("/api/v1/quizzes", QuizRoutes);
-// app.use("/api/v1/assignments", AssignmentRoutes);
-// app.use("/api/v1/discussions", DiscussionRoutes);
+app.use("/api/v1/users", UserRoutes);
+app.use("/api/v1/courses", CourseRoutes);
+app.use("/api/v1/super-modules", SuperModuleRoutes);
+app.use("/api/v1/modules", ModuleRoutes);
+app.use("/api/v1/lessons", LessonRoutes);
+app.use("/api/v1/judge", JudgeRoutes);
+app.use("/api/v1/quizzes", QuizRoutes);
+app.use("/api/v1/assignments", AssignmentRoutes);
+app.use("/api/v1/discussions", DiscussionRoutes);
 // app.use("/api/v1/analytics", AnalyticsRoutes);
+app.use("/api/v1/payment", PaymentRoutes);
+app.use("/api/v1/enrollments", EnrollmentRoutes);
+
+app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const grantIdTokenResult = await getBkashIdToken();
+
+		console.log(grantIdTokenResult);
+
+		res.status(httpStatus.OK).json({
+			success: true,
+			message: "Welcome to code bd code payment",
+			data: null,
+		});
+	} catch (error) {
+		console.log(error);
+		next(error);
+	}
+});
 
 app.get("/", async (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({
 		success: true,
-		message: "Welcome to Code BD Code",
+		message: "Welcome to Code BD Code backend",
 	});
 });
 

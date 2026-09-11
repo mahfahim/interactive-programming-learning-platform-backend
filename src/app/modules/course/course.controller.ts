@@ -84,31 +84,6 @@ const deleteCourse = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const enrollCourse = catchAsync(async (req: Request, res: Response) => {
-	const userId = req.user!.userId;
-	const { courseId } = req.params;
-	const result = await CourseService.enrollCourse(userId, courseId as string);
-
-	sendResponse(res, {
-		statusCode: StatusCodes.CREATED,
-		success: true,
-		message: "Enrolled in course successfully",
-		data: result,
-	});
-});
-
-const getMyEnrolledCourses = catchAsync(async (req: Request, res: Response) => {
-	const userId = req.user!.userId;
-	const result = await CourseService.getMyEnrolledCourses(userId);
-
-	sendResponse(res, {
-		statusCode: StatusCodes.OK,
-		success: true,
-		message: "Enrolled courses retrieved successfully",
-		data: result,
-	});
-});
-
 export const CourseController = {
 	createCourse,
 	getCourses,
@@ -116,6 +91,4 @@ export const CourseController = {
 	getCourseById,
 	updateCourse,
 	deleteCourse,
-	enrollCourse,
-	getMyEnrolledCourses,
 };

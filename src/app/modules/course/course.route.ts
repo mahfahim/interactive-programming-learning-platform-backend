@@ -26,18 +26,6 @@ router.get(
 	CourseController.getMyCourses,
 );
 
-router.get(
-	"/enrolled/my-courses",
-	auth(Role.STUDENT),
-	CourseController.getMyEnrolledCourses,
-);
-
-router.post(
-	"/:courseId/enroll",
-	auth(Role.STUDENT),
-	CourseController.enrollCourse,
-);
-
 router.get("/:id", CourseController.getCourseById);
 
 router.patch(
