@@ -5,7 +5,6 @@ import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import type {
 	IAdminUpdateUserDto,
-	IPaginatedResult,
 	ISyncEducationsDto,
 	ISyncExperiencesDto,
 	ISyncSkillsDto,
@@ -13,7 +12,6 @@ import type {
 	ISyncWebsitesDto,
 	IUpdateUserProfileDto,
 	IUserFilterRequest,
-	IUserProfileResponse,
 } from "./user.interface";
 
 const fullProfileInclude = {

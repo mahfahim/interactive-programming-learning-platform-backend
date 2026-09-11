@@ -27,8 +27,8 @@
 				"noUnusedFunctionParameters": "off"
 			},
 			"style": {
-				"noNonNullAssertion": "info",
-				"useNodejsImportProtocol": "info"
+				"noNonNullAssertion": "off",
+				"useNodejsImportProtocol": "off"
 			}
 		},
 		"includes": ["**", "!src/genrated", "!!**/dist"]

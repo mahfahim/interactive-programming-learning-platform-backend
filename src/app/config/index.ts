@@ -1,6 +1,6 @@
 //src/config/index.ts
 import dotenv from "dotenv";
-import path from "path";
+import path from "node:path";
 
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 
