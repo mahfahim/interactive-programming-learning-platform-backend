@@ -37,6 +37,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+app.get("/", async (req: Request, res: Response) => {
+	res.status(httpStatus.OK).json({
+		success: true,
+		message: "Welcome to Code BD Code backend",
+	});
+});
+
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/courses", CourseRoutes);
@@ -66,13 +73,6 @@ app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 		console.log(error);
 		next(error);
 	}
-});
-
-app.get("/", async (req: Request, res: Response) => {
-	res.status(httpStatus.OK).json({
-		success: true,
-		message: "Welcome to Code BD Code backend",
-	});
 });
 
 app.use(globalErrorHandler);
