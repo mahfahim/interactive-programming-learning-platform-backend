@@ -9,6 +9,7 @@ export default defineConfig({
 	bundle: true,
 	splitting: false,
 	sourcemap: true,
+	external: ["@prisma/client", "@prisma/adapter-pg", "pg"],
 	// Add this banner to shim require() for CJS dependencies
 	banner: {
 		js: `
