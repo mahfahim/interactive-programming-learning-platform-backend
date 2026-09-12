@@ -5,23 +5,25 @@ import { AppError } from "../utils/AppError";
 import { catchAsync } from "../utils/catchAsync";
 
 export const validateRequest = (zodSchema: z.ZodObject) => {
-	return catchAsync((req: Request, res: Response, next: NextFunction) => {
+	return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 		const payload = req.body ?? {};
 
-		const result = zodSchema.safeParse(payload);
+		const result = await zodSchema.safeParseAsync(payload);
 
 		if (!result.success) {
-			console.log(result.error);
-			console.log(result.error.issues);
+			const formattedErrors = result.error.issues.map((issue) => ({
+				path: issue.path.join("."),
+				message: issue.message,
+			}));
 
 			throw new AppError(
 				httpStatus.BAD_REQUEST,
-				result.error.issues[0]?.message ?? "Invalid request payload",
+				"Validation Error",
+				formattedErrors,
 			);
 		}
 
 		req.body = result.data;
-
 		next();
 	});
 };

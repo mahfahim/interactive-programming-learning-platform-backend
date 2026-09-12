@@ -8,6 +8,8 @@ import type {
 	ICourseQueryParams,
 } from "./course.interface";
 import { assertCourseExists } from "./course.utils";
+import { getOrSetCache, clearCachePattern } from "../../utils/cache";
+import { courseCacheKeys } from "../../utils/cacheKey";
 
 export const defaultCourseDetailsInclude = {
 	description: {
@@ -50,7 +52,7 @@ const createCourse = async (payload: ICreateCourseInput) => {
 		);
 	}
 
-	return prisma.$transaction(async (tx) => {
+	const newCourse = await prisma.$transaction(async (tx) => {
 		return tx.course.create({
 			data: {
 				title: payload.title,
@@ -80,87 +82,114 @@ const createCourse = async (payload: ICreateCourseInput) => {
 			include: defaultCourseDetailsInclude,
 		});
 	});
+
+	await clearCachePattern(courseCacheKeys.pattern);
+	return newCourse;
 };
 
 const getCourses = async (params: ICourseQueryParams) => {
-	const {
-		search,
-		level,
-		page = 1,
-		limit = 10,
-		sortBy = "createdAt",
-		sortOrder = "desc",
-	} = params;
-	const skip = (page - 1) * limit;
+	const cacheKey = courseCacheKeys.list(params as Record<string, unknown>);
 
-	const where: Prisma.CourseWhereInput = {};
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			const {
+				search,
+				level,
+				page = 1,
+				limit = 10,
+				sortBy = "createdAt",
+				sortOrder = "desc",
+			} = params;
+			const skip = (page - 1) * limit;
 
-	if (search) {
-		where.OR = [
-			{ title: { contains: search, mode: "insensitive" } },
-			{ slug: { contains: search, mode: "insensitive" } },
-			{
-				description: {
-					shortDescription: { contains: search, mode: "insensitive" },
-				},
-			},
-		];
-	}
+			const where: Prisma.CourseWhereInput = {};
 
-	if (level) {
-		where.description = {
-			...where.description,
-			level,
-		} as Prisma.CourseDescriptionWhereInput;
-	}
-
-	const [data, total] = await Promise.all([
-		prisma.course.findMany({
-			where,
-			skip,
-			take: limit,
-			orderBy: { [sortBy]: sortOrder },
-			include: {
-				description: {
-					include: {
-						learningOutcomes: { orderBy: { displayOrder: "asc" } },
-						prerequisites: { orderBy: { displayOrder: "asc" } },
+			if (search) {
+				where.OR = [
+					{ title: { contains: search, mode: "insensitive" } },
+					{ slug: { contains: search, mode: "insensitive" } },
+					{
+						description: {
+							shortDescription: { contains: search, mode: "insensitive" },
+						},
 					},
-				},
-			},
-		}),
-		prisma.course.count({ where }),
-	]);
+				];
+			}
 
-	return {
-		data,
-		meta: {
-			page,
-			limit,
-			total,
-			totalPages: Math.ceil(total / limit) || 1,
+			if (level) {
+				where.description = {
+					...where.description,
+					level,
+				} as Prisma.CourseDescriptionWhereInput;
+			}
+
+			const [data, total] = await Promise.all([
+				prisma.course.findMany({
+					where,
+					skip,
+					take: limit,
+					orderBy: { [sortBy]: sortOrder },
+					include: {
+						description: {
+							include: {
+								learningOutcomes: { orderBy: { displayOrder: "asc" } },
+								prerequisites: { orderBy: { displayOrder: "asc" } },
+							},
+						},
+					},
+				}),
+				prisma.course.count({ where }),
+			]);
+
+			return {
+				data,
+				meta: {
+					page,
+					limit,
+					total,
+					totalPages: Math.ceil(total / limit) || 1,
+				},
+			};
 		},
-	};
+		300,
+	);
 };
 
 const getMyCourses = async (userId: string) => {
-	return prisma.course.findMany({
-		where: { instructorId: userId },
-		include: defaultCourseDetailsInclude,
-	});
+	const cacheKey = courseCacheKeys.my(userId);
+
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			return prisma.course.findMany({
+				where: { instructorId: userId },
+				include: defaultCourseDetailsInclude,
+			});
+		},
+		600,
+	);
 };
 
 const getCourseById = async (id: string) => {
-	const course = await prisma.course.findUnique({
-		where: { id },
-		include: defaultCourseDetailsInclude,
-	});
+	const cacheKey = courseCacheKeys.detail(id);
 
-	if (!course) {
-		throw new AppError(StatusCodes.NOT_FOUND, "Course not found");
-	}
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			const course = await prisma.course.findUnique({
+				where: { id },
+				include: defaultCourseDetailsInclude,
+			});
 
-	return course;
+			if (!course) {
+				throw new AppError(StatusCodes.NOT_FOUND, "Course not found");
+			}
+
+			return course;
+		},
+		3600,
+	);
 };
 
 const updateCourse = async (id: string, payload: IUpdateCourseInput) => {
@@ -178,7 +207,7 @@ const updateCourse = async (id: string, payload: IUpdateCourseInput) => {
 		}
 	}
 
-	return prisma.$transaction(async (tx) => {
+	const updatedCourse = await prisma.$transaction(async (tx) => {
 		if (payload.description?.learningOutcomes) {
 			await tx.courseLearningOutcome.deleteMany({
 				where: { courseDescriptionId: id },
@@ -231,11 +260,17 @@ const updateCourse = async (id: string, payload: IUpdateCourseInput) => {
 			include: defaultCourseDetailsInclude,
 		});
 	});
+
+	await clearCachePattern(courseCacheKeys.pattern);
+	return updatedCourse;
 };
 
 const deleteCourse = async (id: string) => {
 	await assertCourseExists(id);
-	return prisma.course.delete({ where: { id } });
+	const deletedCourse = await prisma.course.delete({ where: { id } });
+
+	await clearCachePattern(courseCacheKeys.pattern);
+	return deletedCourse;
 };
 
 export const CourseService = {

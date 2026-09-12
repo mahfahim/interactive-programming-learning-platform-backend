@@ -1,12 +1,13 @@
 // src/errors/AppError.ts
-
 export class AppError extends Error {
 	public statusCode: number;
+	public errors?: any[];
 
-	constructor(statusCode: number, message: string, stack = "") {
-		super(message); // throw new Error(message)
+	constructor(statusCode: number, message: string, errors?: any[], stack = "") {
+		super(message);
 
 		this.statusCode = statusCode;
+		this.errors = errors;
 
 		if (stack) {
 			this.stack = stack;
@@ -15,5 +16,3 @@ export class AppError extends Error {
 		}
 	}
 }
-
-//throw new AppError(404, "Not Found")
