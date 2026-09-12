@@ -1,23 +1,29 @@
+import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import { StatusCodes } from "http-status-codes";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { lessonCacheKeys } from "../../utils/cacheKey";
 import { checkProAccess } from "../../utils/checkProAccess";
 import { assertModuleExists } from "../module/module.service";
+
 import type {
 	ICreateLessonInput,
-	IUpdateLessonInput,
-	IUpsertVideoLessonInput,
 	ISyncArticleLessonInput,
+	IUpdateLessonInput,
 	IUpdateLessonProgressInput,
+	IUpsertVideoLessonInput,
 } from "./lesson.interface";
 
 export const assertLessonExists = async (id: string) => {
 	const lesson = await prisma.lesson.findUnique({ where: { id } });
-	if (!lesson) throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+
+	if (!lesson) {
+		throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+	}
+
 	return lesson;
 };
 
-// Helper function to fetch course context and verify Pro access
 const verifyLessonAccess = async (
 	lessonId: string,
 	userId?: string,
@@ -40,11 +46,12 @@ const verifyLessonAccess = async (
 		},
 	});
 
-	if (!lesson) throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+	if (!lesson) {
+		throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+	}
 
 	const courseId = lesson.module.superModule.courseId;
 
-	// Triggers 402 PAYMENT_REQUIRED if user lacks access
 	await checkProAccess({
 		userId,
 		userRole,
@@ -57,7 +64,14 @@ const verifyLessonAccess = async (
 
 const createLesson = async (payload: ICreateLessonInput) => {
 	await assertModuleExists(payload.moduleId);
-	return prisma.lesson.create({ data: payload });
+
+	const result = await prisma.lesson.create({
+		data: payload,
+	});
+
+	await clearCachePattern(lessonCacheKeys.pattern);
+
+	return result;
 };
 
 const getLessonById = async (
@@ -67,27 +81,56 @@ const getLessonById = async (
 ) => {
 	await verifyLessonAccess(id, userId, userRole);
 
-	const lesson = await prisma.lesson.findUnique({
-		where: { id },
-		include: {
-			video: true,
-			article: {
-				include: { sections: { orderBy: { displayOrder: "asc" } } },
-			},
+	return getOrSetCache(
+		lessonCacheKeys.detail(id),
+		async () => {
+			const lesson = await prisma.lesson.findUnique({
+				where: { id },
+				include: {
+					video: true,
+					article: {
+						include: {
+							sections: {
+								orderBy: { displayOrder: "asc" },
+							},
+						},
+					},
+				},
+			});
+
+			if (!lesson) {
+				throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
+			}
+
+			return lesson;
 		},
-	});
-	if (!lesson) throw new AppError(StatusCodes.NOT_FOUND, "Lesson not found");
-	return lesson;
+		3600,
+	);
 };
 
 const updateLesson = async (id: string, payload: IUpdateLessonInput) => {
 	await assertLessonExists(id);
-	return prisma.lesson.update({ where: { id }, data: payload });
+
+	const result = await prisma.lesson.update({
+		where: { id },
+		data: payload,
+	});
+
+	await clearCachePattern(lessonCacheKeys.pattern);
+
+	return result;
 };
 
 const deleteLesson = async (id: string) => {
 	await assertLessonExists(id);
-	return prisma.lesson.delete({ where: { id } });
+
+	const result = await prisma.lesson.delete({
+		where: { id },
+	});
+
+	await clearCachePattern(lessonCacheKeys.pattern);
+
+	return result;
 };
 
 const getVideoLesson = async (
@@ -97,13 +140,24 @@ const getVideoLesson = async (
 ) => {
 	await verifyLessonAccess(lessonId, userId, userRole);
 
-	const video = await prisma.videoLesson.findUnique({ where: { lessonId } });
-	if (!video)
-		throw new AppError(
-			StatusCodes.NOT_FOUND,
-			"Video content not found for this lesson",
-		);
-	return video;
+	return getOrSetCache(
+		lessonCacheKeys.video(lessonId),
+		async () => {
+			const video = await prisma.videoLesson.findUnique({
+				where: { lessonId },
+			});
+
+			if (!video) {
+				throw new AppError(
+					StatusCodes.NOT_FOUND,
+					"Video content not found for this lesson",
+				);
+			}
+
+			return video;
+		},
+		3600,
+	);
 };
 
 const upsertVideoLesson = async (
@@ -111,11 +165,19 @@ const upsertVideoLesson = async (
 	payload: IUpsertVideoLessonInput,
 ) => {
 	await assertLessonExists(lessonId);
-	return prisma.videoLesson.upsert({
+
+	const result = await prisma.videoLesson.upsert({
 		where: { lessonId },
-		create: { lessonId, ...payload },
+		create: {
+			lessonId,
+			...payload,
+		},
 		update: payload,
 	});
+
+	await clearCachePattern(lessonCacheKeys.pattern);
+
+	return result;
 };
 
 const getArticleLesson = async (
@@ -125,16 +187,29 @@ const getArticleLesson = async (
 ) => {
 	await verifyLessonAccess(lessonId, userId, userRole);
 
-	const article = await prisma.articleLesson.findUnique({
-		where: { lessonId },
-		include: { sections: { orderBy: { displayOrder: "asc" } } },
-	});
-	if (!article)
-		throw new AppError(
-			StatusCodes.NOT_FOUND,
-			"Article content not found for this lesson",
-		);
-	return article;
+	return getOrSetCache(
+		lessonCacheKeys.article(lessonId),
+		async () => {
+			const article = await prisma.articleLesson.findUnique({
+				where: { lessonId },
+				include: {
+					sections: {
+						orderBy: { displayOrder: "asc" },
+					},
+				},
+			});
+
+			if (!article) {
+				throw new AppError(
+					StatusCodes.NOT_FOUND,
+					"Article content not found for this lesson",
+				);
+			}
+
+			return article;
+		},
+		3600,
+	);
 };
 
 const syncArticleLesson = async (
@@ -143,7 +218,7 @@ const syncArticleLesson = async (
 ) => {
 	await assertLessonExists(lessonId);
 
-	return prisma.$transaction(async (tx) => {
+	const result = await prisma.$transaction(async (tx) => {
 		await tx.articleLesson.upsert({
 			where: { lessonId },
 			create: { lessonId },
@@ -166,9 +241,17 @@ const syncArticleLesson = async (
 
 		return tx.articleLesson.findUniqueOrThrow({
 			where: { lessonId },
-			include: { sections: { orderBy: { displayOrder: "asc" } } },
+			include: {
+				sections: {
+					orderBy: { displayOrder: "asc" },
+				},
+			},
 		});
 	});
+
+	await clearCachePattern(lessonCacheKeys.pattern);
+
+	return result;
 };
 
 const getLessonProgress = async (
@@ -178,9 +261,19 @@ const getLessonProgress = async (
 ) => {
 	await verifyLessonAccess(lessonId, userId, userRole);
 
-	return prisma.lessonProgress.findUnique({
-		where: { userId_lessonId: { userId, lessonId } },
-	});
+	return getOrSetCache(
+		lessonCacheKeys.progress(userId, lessonId),
+		() =>
+			prisma.lessonProgress.findUnique({
+				where: {
+					userId_lessonId: {
+						userId,
+						lessonId,
+					},
+				},
+			}),
+		300,
+	);
 };
 
 const updateLessonProgress = async (
@@ -193,8 +286,13 @@ const updateLessonProgress = async (
 
 	const completedAt = payload.isCompleted ? new Date() : null;
 
-	return prisma.lessonProgress.upsert({
-		where: { userId_lessonId: { userId, lessonId } },
+	const result = await prisma.lessonProgress.upsert({
+		where: {
+			userId_lessonId: {
+				userId,
+				lessonId,
+			},
+		},
 		create: {
 			userId,
 			lessonId,
@@ -206,6 +304,10 @@ const updateLessonProgress = async (
 			completedAt,
 		},
 	});
+
+	await clearCachePattern(lessonCacheKeys.progress(userId, lessonId));
+
+	return result;
 };
 
 export const LessonService = {
