@@ -1,6 +1,8 @@
+import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
-import { StatusCodes } from "http-status-codes";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { moduleCacheKeys } from "../../utils/cacheKey";
 import { assertSuperModuleExists } from "../superModule/superModule.service";
 import type {
 	ICreateModuleInput,
@@ -9,49 +11,90 @@ import type {
 
 export const assertModuleExists = async (id: string) => {
 	const module = await prisma.module.findUnique({ where: { id } });
+
 	if (!module) throw new AppError(StatusCodes.NOT_FOUND, "Module not found");
+
 	return module;
 };
 
 const createModule = async (payload: ICreateModuleInput) => {
 	await assertSuperModuleExists(payload.superModuleId);
-	return prisma.module.create({ data: payload });
+
+	const result = await prisma.module.create({ data: payload });
+
+	await clearCachePattern(moduleCacheKeys.pattern);
+
+	return result;
 };
 
 const getModulesBySuperModule = async (superModuleId: string) => {
 	await assertSuperModuleExists(superModuleId);
-	return prisma.module.findMany({
-		where: { superModuleId },
-		orderBy: { displayOrder: "asc" },
-		include: { lessons: { orderBy: { displayOrder: "asc" } } },
-	});
+
+	return getOrSetCache(
+		moduleCacheKeys.bySuperModule(superModuleId),
+		() =>
+			prisma.module.findMany({
+				where: { superModuleId },
+				orderBy: { displayOrder: "asc" },
+				include: {
+					lessons: {
+						orderBy: { displayOrder: "asc" },
+					},
+				},
+			}),
+		600,
+	);
 };
 
 const getModuleById = async (id: string) => {
-	const module = await prisma.module.findUnique({
-		where: { id },
-		include: {
-			lessons: {
-				orderBy: { displayOrder: "asc" },
+	return getOrSetCache(
+		moduleCacheKeys.detail(id),
+		async () => {
+			const module = await prisma.module.findUnique({
+				where: { id },
 				include: {
-					video: true,
-					article: true,
+					lessons: {
+						orderBy: { displayOrder: "asc" },
+						include: {
+							video: true,
+							article: true,
+						},
+					},
 				},
-			},
+			});
+
+			if (!module)
+				throw new AppError(StatusCodes.NOT_FOUND, "Module not found");
+
+			return module;
 		},
-	});
-	if (!module) throw new AppError(StatusCodes.NOT_FOUND, "Module not found");
-	return module;
+		3600,
+	);
 };
 
 const updateModule = async (id: string, payload: IUpdateModuleInput) => {
 	await assertModuleExists(id);
-	return prisma.module.update({ where: { id }, data: payload });
+
+	const result = await prisma.module.update({
+		where: { id },
+		data: payload,
+	});
+
+	await clearCachePattern(moduleCacheKeys.pattern);
+
+	return result;
 };
 
 const deleteModule = async (id: string) => {
 	await assertModuleExists(id);
-	return prisma.module.delete({ where: { id } });
+
+	const result = await prisma.module.delete({
+		where: { id },
+	});
+
+	await clearCachePattern(moduleCacheKeys.pattern);
+
+	return result;
 };
 
 export const ModuleService = {
