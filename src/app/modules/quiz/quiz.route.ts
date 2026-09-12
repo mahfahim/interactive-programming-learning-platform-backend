@@ -1,6 +1,7 @@
-import { Role } from "../../../generated/prisma/enums";
 import { Router } from "express";
+import { Role } from "../../../generated/prisma/client";
 import { auth } from "../../middlewares/checkAuth";
+import { authRateLimiter } from "../../middlewares/rateLimiter"; // 👈 Rate Limiter
 import { validateRequest } from "../../middlewares/validateRequest";
 import { QuizController } from "./quiz.controller";
 import { QuizValidation } from "./quiz.validation";
@@ -22,6 +23,7 @@ router.get(
 
 router.post(
 	"/submit",
+	authRateLimiter, // 👈 অটোমেটেড কোয়েজ অ্যান্সার স্প্যাম আটকাবে
 	auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
 	validateRequest(QuizValidation.SubmitQuizZodSchema),
 	QuizController.submitQuiz,

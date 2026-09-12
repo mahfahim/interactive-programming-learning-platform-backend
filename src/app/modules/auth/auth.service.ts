@@ -264,23 +264,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
 	};
 };
 
-const getMe = async (user: IRequestUser) => {
-	const isUserExists = await prisma.user.findUnique({
-		where: {
-			id: user.userId,
-		},
-		omit: {
-			password: true,
-		},
-	});
-
-	if (!isUserExists) {
-		throw new AppError(httpStatus.NOT_FOUND, "User not found");
-	}
-
-	return isUserExists;
-};
-
 const refreshToken = async (token: string) => {
 	// Check if the token is blacklisted in Redis
 	const isBlacklisted = await redisClient.get(`blacklisted-token:${token}`);
@@ -355,7 +338,6 @@ const logout = async (refreshToken: string) => {
 
 	const data = verifiedToken.data as JwtPayload;
 
-	// Token-এর বাকি মেয়াদের সময় (TTL) হিসাব করে Redis-এ Blacklist করা হচ্ছে
 	if (data.exp) {
 		const ttl = data.exp - Math.floor(Date.now() / 1000);
 		if (ttl > 0) {
@@ -658,7 +640,6 @@ export const AuthService = {
 	registerUser,
 	verifyPatientEmail,
 	loginUser,
-	getMe,
 	refreshToken,
 	logout,
 	googleLogin,

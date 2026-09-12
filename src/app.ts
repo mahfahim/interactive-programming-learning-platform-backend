@@ -5,6 +5,7 @@ import type { Application, Request, Response, NextFunction } from "express";
 import express from "express";
 import httpStatus from "http-status";
 import config from "./app/config";
+import { globalRateLimiter } from "./app/middlewares/rateLimiter";
 import { getBkashIdToken } from "./app/lib/bkash";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import { notFound } from "./app/middlewares/notFound";
@@ -25,6 +26,8 @@ import { CertificateRoutes } from "./app/modules/certificate/certificate.route";
 
 const app: Application = express();
 
+app.set("trust proxy", 1);
+
 app.use(
 	cors({
 		origin: config.frontend_url,
@@ -33,9 +36,10 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: true }));
-
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(globalRateLimiter);
 
 app.get("/", async (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({

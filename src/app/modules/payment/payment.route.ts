@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { Role } from "../../../generated/prisma/client";
 import { auth } from "../../middlewares/checkAuth";
+import { paymentRateLimiter } from "../../middlewares/rateLimiter"; // 👈 Rate Limiter
 import { validateRequest } from "../../middlewares/validateRequest";
 import { PaymentController } from "./payment.controller";
 import { PaymentValidation } from "./payment.validation";
@@ -20,6 +21,7 @@ router.get(
 // Admin Only Route: Initiate Refund & Cancel Enrollment
 router.post(
 	"/refund/:paymentId",
+	paymentRateLimiter,
 	auth(Role.ADMIN),
 	validateRequest(PaymentValidation.initiateRefundValidationSchema),
 	PaymentController.initiateRefund,
