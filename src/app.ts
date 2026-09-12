@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import type { Application, Request, Response, NextFunction } from "express";
 import express from "express";
+import helmet from "helmet";
 import httpStatus from "http-status";
 import config from "./app/config";
 import { globalRateLimiter } from "./app/middlewares/rateLimiter";
@@ -27,6 +28,13 @@ import { CertificateRoutes } from "./app/modules/certificate/certificate.route";
 const app: Application = express();
 
 app.set("trust proxy", 1);
+
+app.use(
+	helmet({
+		crossOriginResourcePolicy: { policy: "cross-origin" },
+		crossOriginEmbedderPolicy: false,
+	}),
+);
 
 app.use(
 	cors({
