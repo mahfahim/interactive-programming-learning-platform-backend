@@ -1,4 +1,4 @@
-import { Prisma } from "../../generated/prisma/client";
+import type { Prisma } from "../../generated/prisma/client";
 
 const SENSITIVE_KEYS_REGEX =
 	/^(password|passwordhash|accesstoken|refreshtoken|token|cookie|authorization|apikey|secret|privatekey|cvv|cardnumber|bkashtoken|sslcommerzsecret)$/i;

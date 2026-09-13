@@ -79,8 +79,6 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-
-
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
 	if (!req.cookies.refreshToken) {
 		throw new Error("Refresh token is missing");
