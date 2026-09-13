@@ -1,3 +1,5 @@
+// src/modules/judge/judge.service.ts
+
 import {
 	type ProgrammingLanguage,
 	Role,
@@ -7,8 +9,13 @@ import config from "../../config";
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { judgeCacheKeys } from "../../utils/cacheKey";
 import { calculateAggregateStatus, normalizeOutput } from "./judge.utils";
-import { assertLessonExists, verifyLessonAccess } from "../lesson/lesson.utils";
+import {
+	assertLessonExists,
+	verifyLessonAccess,
+} from "../../utils/courseLessonAssertions";
 import type {
 	ICodeExecutionRequest,
 	ICodeExecutionResult,
@@ -278,6 +285,11 @@ const submitCode = async (
 		},
 	});
 
+	// Invalidate student submission history cache for this problem
+	await clearCachePattern(
+		judgeCacheKeys.mySubmissions(user.userId, payload.codingLessonId),
+	);
+
 	return {
 		id: submission.id,
 		status: submission.status,
@@ -331,19 +343,27 @@ const getMySubmissions = async (codingLessonId: string, user: IRequestUser) => {
 
 	await verifyLessonAccess(codingLesson.lessonId, user.userId, user.role);
 
-	return prisma.codingAnswer.findMany({
-		where: { codingLessonId, userId: user.userId },
-		orderBy: { submittedAt: "desc" },
-		select: {
-			id: true,
-			language: true,
-			status: true,
-			runtimeMs: true,
-			memoryUsedKb: true,
-			passedTestCasesCount: true,
-			submittedAt: true,
+	const cacheKey = judgeCacheKeys.mySubmissions(user.userId, codingLessonId);
+
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			return prisma.codingAnswer.findMany({
+				where: { codingLessonId, userId: user.userId },
+				orderBy: { submittedAt: "desc" },
+				select: {
+					id: true,
+					language: true,
+					status: true,
+					runtimeMs: true,
+					memoryUsedKb: true,
+					passedTestCasesCount: true,
+					submittedAt: true,
+				},
+			});
 		},
-	});
+		300, // 5 minutes TTL
+	);
 };
 
 const getCodingLessonByLessonId = async (
@@ -351,30 +371,40 @@ const getCodingLessonByLessonId = async (
 	userId?: string,
 	userRole?: string,
 ) => {
+	// 1. MUST verify user lesson access FIRST for every request
 	await verifyLessonAccess(lessonId, userId, userRole);
 
-	const codingLesson = await prisma.codingLesson.findUnique({
-		where: { lessonId },
-		include: {
-			testCases: {
-				where: { isHidden: false },
-				orderBy: { displayOrder: "asc" },
-				select: {
-					id: true,
-					inputData: true,
-					expectedOutput: true,
-					isHidden: true,
-					displayOrder: true,
+	// 2. Fetch/Cache public coding lesson data securely
+	const cacheKey = judgeCacheKeys.codingLessonByLessonId(lessonId);
+
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			const codingLesson = await prisma.codingLesson.findUnique({
+				where: { lessonId },
+				include: {
+					testCases: {
+						where: { isHidden: false },
+						orderBy: { displayOrder: "asc" },
+						select: {
+							id: true,
+							inputData: true,
+							expectedOutput: true,
+							isHidden: true,
+							displayOrder: true,
+						},
+					},
 				},
-			},
+			});
+
+			if (!codingLesson) {
+				throw new AppError(httpStatus.NOT_FOUND, "Coding lesson not found");
+			}
+
+			return codingLesson;
 		},
-	});
-
-	if (!codingLesson) {
-		throw new AppError(httpStatus.NOT_FOUND, "Coding lesson not found");
-	}
-
-	return codingLesson;
+		3600, // 1 hour TTL
+	);
 };
 
 const createCodingLesson = async (payload: ICodingLessonCreatePayload) => {
@@ -391,7 +421,7 @@ const createCodingLesson = async (payload: ICodingLessonCreatePayload) => {
 		);
 	}
 
-	return prisma.codingLesson.create({
+	const created = await prisma.codingLesson.create({
 		data: {
 			lessonId: payload.lessonId,
 			problemStatement: payload.problemStatement,
@@ -412,6 +442,10 @@ const createCodingLesson = async (payload: ICodingLessonCreatePayload) => {
 		},
 		include: { testCases: true },
 	});
+
+	await clearCachePattern(judgeCacheKeys.codingLessonPattern(payload.lessonId));
+
+	return created;
 };
 
 const updateCodingLesson = async (
@@ -423,7 +457,7 @@ const updateCodingLesson = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Coding lesson not found");
 	}
 
-	return prisma.codingLesson.update({
+	const updated = await prisma.codingLesson.update({
 		where: { id },
 		data: {
 			...(payload.problemStatement !== undefined && {
@@ -443,6 +477,12 @@ const updateCodingLesson = async (
 			}),
 		},
 	});
+
+	await clearCachePattern(
+		judgeCacheKeys.codingLessonPattern(existing.lessonId),
+	);
+
+	return updated;
 };
 
 const updateTestCases = async (
@@ -454,7 +494,7 @@ const updateTestCases = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Coding lesson not found");
 	}
 
-	return prisma.$transaction(async (tx) => {
+	const updatedTestCases = await prisma.$transaction(async (tx) => {
 		await tx.codingTestCase.deleteMany({ where: { codingLessonId: id } });
 		await tx.codingTestCase.createMany({
 			data: payload.testCases.map((tc) => ({
@@ -471,6 +511,12 @@ const updateTestCases = async (
 			orderBy: { displayOrder: "asc" },
 		});
 	});
+
+	await clearCachePattern(
+		judgeCacheKeys.codingLessonPattern(existing.lessonId),
+	);
+
+	return updatedTestCases;
 };
 
 const getCodingLessonSubmissions = async (id: string) => {

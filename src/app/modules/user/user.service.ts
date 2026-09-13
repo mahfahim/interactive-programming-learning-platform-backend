@@ -1,8 +1,12 @@
 import type { UploadApiResponse } from "cloudinary";
-import type { Prisma } from "../../../generated/prisma/client";
+import { AuditAction, type Prisma } from "../../../generated/prisma/client";
 import { UserStatus } from "../../../generated/prisma/enums";
 import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { userCacheKeys } from "../../utils/cacheKey";
+import { calculateEntityDiff } from "../../utils/sanitizeAuditData";
+import { AuditLogService } from "../auditLog/auditLog.service";
 import type {
 	IAdminUpdateUserDto,
 	ISyncEducationsDto,
@@ -13,6 +17,10 @@ import type {
 	IUpdateUserProfileDto,
 	IUserFilterRequest,
 } from "./user.interface";
+
+const USER_LIST_TTL = 300; // 5 minutes
+const USER_DETAIL_TTL = 600; // 10 minutes
+const USER_PROFILE_TTL = 300; // 5 minutes
 
 const fullProfileInclude = {
 	description: {
@@ -71,7 +79,9 @@ const syncRelation = async (
 		throw new Error("User profile sync failed");
 	}
 
-	return sanitizeUser(updatedUser);
+	const sanitized = sanitizeUser(updatedUser);
+	await clearCachePattern(userCacheKeys.pattern);
+	return sanitized;
 };
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
@@ -114,121 +124,195 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 		await cloudinary.uploader.destroy(currentUser.imagePublicId);
 	}
 
-	return sanitizeUser(updatedUser);
+	const sanitized = sanitizeUser(updatedUser);
+	await clearCachePattern(userCacheKeys.pattern);
+	return sanitized;
 };
 
 const getAllUsers = async (filters: IUserFilterRequest) => {
-	const {
-		search,
-		role,
-		status,
-		page = 1,
-		limit = 10,
-		sortBy = "createdAt",
-		sortOrder = "desc",
-	} = filters;
+	const cacheKey = userCacheKeys.list(
+		filters as unknown as Record<string, unknown>,
+	);
 
-	const pageNumber = Math.max(1, Number(page));
-	const limitNumber = Math.max(1, Number(limit));
-	const skip = (pageNumber - 1) * limitNumber;
+	return await getOrSetCache(
+		cacheKey,
+		async () => {
+			const {
+				search,
+				role,
+				status,
+				page = 1,
+				limit = 10,
+				sortBy = "createdAt",
+				sortOrder = "desc",
+			} = filters;
 
-	const whereConditions: Prisma.UserWhereInput = {
-		isDeleted: false,
-		...(role && { role }),
-		...(status && { status }),
-		...(search && {
-			OR: [
-				{ name: { contains: search, mode: "insensitive" } },
-				{ email: { contains: search, mode: "insensitive" } },
-			],
-		}),
-	};
+			const pageNumber = Math.max(1, Number(page));
+			const limitNumber = Math.max(1, Number(limit));
+			const skip = (pageNumber - 1) * limitNumber;
 
-	const [users, total] = await Promise.all([
-		prisma.user.findMany({
-			where: whereConditions,
-			skip,
-			take: limitNumber,
-			orderBy: {
-				[sortBy]: sortOrder,
-			},
-			include: fullProfileInclude,
-		}),
-		prisma.user.count({ where: whereConditions }),
-	]);
+			const whereConditions: Prisma.UserWhereInput = {
+				isDeleted: false,
+				...(role && { role }),
+				...(status && { status }),
+				...(search && {
+					OR: [
+						{ name: { contains: search, mode: "insensitive" } },
+						{ email: { contains: search, mode: "insensitive" } },
+					],
+				}),
+			};
 
-	return {
-		meta: {
-			page: pageNumber,
-			limit: limitNumber,
-			total,
-			totalPage: Math.ceil(total / limitNumber),
+			const [users, total] = await Promise.all([
+				prisma.user.findMany({
+					where: whereConditions,
+					skip,
+					take: limitNumber,
+					orderBy: {
+						[sortBy]: sortOrder,
+					},
+					include: fullProfileInclude,
+				}),
+				prisma.user.count({ where: whereConditions }),
+			]);
+
+			return {
+				meta: {
+					page: pageNumber,
+					limit: limitNumber,
+					total,
+					totalPage: Math.ceil(total / limitNumber),
+				},
+				data: users.map(sanitizeUser),
+			};
 		},
-		data: users.map(sanitizeUser),
-	};
+		USER_LIST_TTL,
+	);
 };
 
 const getUserById = async (id: string) => {
-	const user = await prisma.user.findFirst({
-		where: { id, isDeleted: false },
-		include: fullProfileInclude,
-	});
+	const cacheKey = userCacheKeys.detail(id);
 
-	if (!user) {
-		throw new Error("User account not found or has been deactivated");
-	}
+	return await getOrSetCache(
+		cacheKey,
+		async () => {
+			const user = await prisma.user.findFirst({
+				where: { id, isDeleted: false },
+				include: fullProfileInclude,
+			});
 
-	return sanitizeUser(user);
+			if (!user) {
+				throw new Error("User account not found or has been deactivated");
+			}
+
+			return sanitizeUser(user);
+		},
+		USER_DETAIL_TTL,
+	);
 };
 
 const adminUpdateUser = async (id: string, payload: IAdminUpdateUserDto) => {
-	try {
-		const updatedUser = await prisma.user.update({
+	const updatedUser = await prisma.$transaction(async (tx) => {
+		const currentUser = await tx.user.findUnique({ where: { id } });
+		if (!currentUser) throw new Error("User not found or update failed");
+
+		const result = await tx.user.update({
 			where: { id },
 			data: payload,
 			include: fullProfileInclude,
 		});
 
-		return sanitizeUser(updatedUser);
-	} catch {
-		throw new Error("User not found or update failed");
-	}
+		const diff = calculateEntityDiff(currentUser, result);
+
+		let action: AuditAction = AuditAction.USER_UPDATED;
+		if (payload.role && payload.role !== currentUser.role) {
+			action = AuditAction.ROLE_CHANGE;
+		} else if (payload.status && payload.status !== currentUser.status) {
+			action = AuditAction.STATUS_CHANGE;
+		}
+
+		await AuditLogService.create(
+			{
+				action,
+				entityType: "USER",
+				entityId: id,
+				description: `Updated user profile/settings for ${result.email}`,
+				oldValues: diff.oldValues,
+				newValues: diff.newValues,
+			},
+			tx,
+		);
+
+		return result;
+	});
+
+	const sanitized = sanitizeUser(updatedUser);
+	await clearCachePattern(userCacheKeys.pattern);
+	return sanitized;
 };
 
 const softDeleteUser = async (id: string) => {
-	const existingUser = await prisma.user.findUnique({
-		where: { id },
-		select: { isDeleted: true },
+	const deletedUser = await prisma.$transaction(async (tx) => {
+		const existingUser = await tx.user.findUnique({
+			where: { id },
+		});
+
+		if (!existingUser || existingUser.isDeleted) {
+			throw new Error("User not found or already deleted");
+		}
+
+		const result = await tx.user.update({
+			where: { id },
+			data: {
+				isDeleted: true,
+				status: UserStatus.DELETED,
+				deletedAt: new Date(),
+			},
+			include: fullProfileInclude,
+		});
+
+		await AuditLogService.create(
+			{
+				action: AuditAction.USER_SOFT_DELETED,
+				entityType: "USER",
+				entityId: id,
+				description: `Soft deleted user account ${result.email}`,
+				oldValues: {
+					isDeleted: existingUser.isDeleted,
+					status: existingUser.status,
+				},
+				newValues: { isDeleted: result.isDeleted, status: result.status },
+			},
+			tx,
+		);
+
+		return result;
 	});
 
-	if (!existingUser || existingUser.isDeleted) {
-		throw new Error("User not found or already deleted");
-	}
-
-	const deletedUser = await prisma.user.update({
-		where: { id },
-		data: {
-			isDeleted: true,
-			status: UserStatus.DELETED,
-			deletedAt: new Date(),
-		},
-		include: fullProfileInclude,
-	});
-
-	return sanitizeUser(deletedUser);
+	const sanitized = sanitizeUser(deletedUser);
+	await clearCachePattern(userCacheKeys.pattern);
+	return sanitized;
 };
 
 const getMyProfile = async (userId: string) => {
-	const user = await prisma.user.findUnique({
-		where: { id: userId },
-		include: fullProfileInclude,
-	});
+	const cacheKey = userCacheKeys.myProfile(userId);
 
-	if (!user || user.isDeleted) {
-		throw new Error("User session invalid or account deleted");
-	}
+	return await getOrSetCache(
+		cacheKey,
+		async () => {
+			const user = await prisma.user.findUnique({
+				where: { id: userId },
+				include: fullProfileInclude,
+			});
 
-	return sanitizeUser(user);
+			if (!user || user.isDeleted) {
+				throw new Error("User session invalid or account deleted");
+			}
+
+			return sanitizeUser(user);
+		},
+		USER_PROFILE_TTL,
+	);
 };
 
 const updateMyProfile = async (
@@ -278,7 +362,9 @@ const updateMyProfile = async (
 		throw new Error("Failed to update user profile");
 	}
 
-	return sanitizeUser(updatedUser);
+	const sanitized = sanitizeUser(updatedUser);
+	await clearCachePattern(userCacheKeys.pattern);
+	return sanitized;
 };
 
 const syncMyEducations = async (

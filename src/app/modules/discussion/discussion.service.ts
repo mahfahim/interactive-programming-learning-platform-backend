@@ -4,6 +4,8 @@ import { type ReactionType, Role } from "../../../generated/prisma/client";
 import httpStatus from "http-status";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { discussionCacheKeys } from "../../utils/cacheKey";
 import type {
 	ICommentResponseNode,
 	IDiscussionCommentCreatePayload,
@@ -21,6 +23,28 @@ const safeUserSelect = {
 	email: true,
 	imageUrl: true,
 };
+
+// Internal interface for shared cached comment structure (without myReaction)
+interface ISharedCommentNode {
+	id: string;
+	threadId: string;
+	userId: string | null;
+	parentCommentId: string | null;
+	body: string;
+	replyCount: number;
+	reactionCount: number;
+	createdAt: Date;
+	updatedAt: Date;
+	isDeleted: boolean;
+	user: {
+		id: string;
+		name: string | null;
+		email: string;
+		imageUrl: string | null;
+	} | null;
+	reactionSummary: Record<string, number>;
+	replies: ISharedCommentNode[];
+}
 
 const createThread = async (
 	user: IRequestUser,
@@ -46,6 +70,11 @@ const createThread = async (
 		},
 	});
 
+	// Invalidate thread lists for this lesson
+	await clearCachePattern(
+		discussionCacheKeys.lessonThreadsPattern(payload.lessonId),
+	);
+
 	return newThread;
 };
 
@@ -53,101 +82,124 @@ const getThreadsByLesson = async (
 	lessonId: string,
 	query: IThreadQueryParams,
 ) => {
-	const lesson = await prisma.lesson.findUnique({
-		where: { id: lessonId },
-	});
+	const cacheKey = discussionCacheKeys.listByLesson(
+		lessonId,
+		query as Record<string, unknown>,
+	);
 
-	if (!lesson) {
-		throw new AppError(httpStatus.NOT_FOUND, "Lesson not found");
-	}
+	return getOrSetCache(
+		cacheKey,
+		async () => {
+			const lesson = await prisma.lesson.findUnique({
+				where: { id: lessonId },
+			});
 
-	const page = Math.max(1, Number(query.page) || 1);
-	const rawLimit = Number(query.limit) || 10;
-	const limit = Math.min(50, Math.max(1, rawLimit));
-	const skip = (page - 1) * limit;
+			if (!lesson) {
+				throw new AppError(httpStatus.NOT_FOUND, "Lesson not found");
+			}
 
-	const whereClause: Record<string, unknown> = { lessonId };
+			const page = Math.max(1, Number(query.page) || 1);
+			const rawLimit = Number(query.limit) || 10;
+			const limit = Math.min(50, Math.max(1, rawLimit));
+			const skip = (page - 1) * limit;
 
-	if (query.search && query.search.trim() !== "") {
-		whereClause.OR = [
-			{ title: { contains: query.search.trim(), mode: "insensitive" } },
-			{ body: { contains: query.search.trim(), mode: "insensitive" } },
-		];
-	}
+			const whereClause: Record<string, unknown> = { lessonId };
 
-	const [threads, total] = await Promise.all([
-		prisma.discussionThread.findMany({
-			where: whereClause,
-			skip,
-			take: limit,
-			orderBy: { createdAt: "desc" },
-			include: {
-				user: { select: safeUserSelect },
-			},
-		}),
-		prisma.discussionThread.count({
-			where: whereClause,
-		}),
-	]);
+			if (query.search && query.search.trim() !== "") {
+				whereClause.OR = [
+					{ title: { contains: query.search.trim(), mode: "insensitive" } },
+					{ body: { contains: query.search.trim(), mode: "insensitive" } },
+				];
+			}
 
-	const totalPages = Math.ceil(total / limit);
+			const [threads, total] = await Promise.all([
+				prisma.discussionThread.findMany({
+					where: whereClause,
+					skip,
+					take: limit,
+					orderBy: { createdAt: "desc" },
+					include: {
+						user: { select: safeUserSelect },
+					},
+				}),
+				prisma.discussionThread.count({
+					where: whereClause,
+				}),
+			]);
 
-	return {
-		data: threads,
-		meta: {
-			page,
-			limit,
-			total,
-			totalPages,
+			const totalPages = Math.ceil(total / limit);
+
+			return {
+				data: threads,
+				meta: {
+					page,
+					limit,
+					total,
+					totalPages,
+				},
+			};
 		},
-	};
+		300, // 5 minutes TTL
+	);
 };
 
 const getThreadById = async (id: string, user: IRequestUser) => {
-	const thread = await prisma.discussionThread.findUnique({
-		where: { id },
-		include: {
-			user: { select: safeUserSelect },
-		},
-	});
-
-	if (!thread) {
-		throw new AppError(httpStatus.NOT_FOUND, "Discussion thread not found");
-	}
-
-	const [groupedReactions, myReactionRecord] = await Promise.all([
-		prisma.discussionThreadReaction.groupBy({
-			by: ["reactionType"],
-			where: { threadId: id },
-			_count: { _all: true },
-		}),
-		prisma.discussionThreadReaction.findUnique({
-			where: {
-				userId_threadId: {
-					userId: user.userId,
-					threadId: id,
+	// 1. Fetch/Cache shared core thread data & reaction summary
+	const sharedThreadData = await getOrSetCache(
+		discussionCacheKeys.detail(id),
+		async () => {
+			const thread = await prisma.discussionThread.findUnique({
+				where: { id },
+				include: {
+					user: { select: safeUserSelect },
 				},
+			});
+
+			if (!thread) {
+				throw new AppError(httpStatus.NOT_FOUND, "Discussion thread not found");
+			}
+
+			const groupedReactions = await prisma.discussionThreadReaction.groupBy({
+				by: ["reactionType"],
+				where: { threadId: id },
+				_count: { _all: true },
+			});
+
+			const reactionSummary: Record<string, number> = {
+				LIKE: 0,
+				DISLIKE: 0,
+				LOVE: 0,
+				HELPFUL: 0,
+				CELEBRATE: 0,
+				THINKING: 0,
+			};
+
+			groupedReactions.forEach((group) => {
+				reactionSummary[group.reactionType] = group._count._all;
+			});
+
+			return {
+				thread,
+				reactionSummary,
+			};
+		},
+		600, // 10 minutes TTL
+	);
+
+	// 2. Query user-specific reaction independently (fast, indexed key lookup)
+	const myReactionRecord = await prisma.discussionThreadReaction.findUnique({
+		where: {
+			userId_threadId: {
+				userId: user.userId,
+				threadId: id,
 			},
-			select: { reactionType: true },
-		}),
-	]);
-
-	const reactionSummary: Record<string, number> = {
-		LIKE: 0,
-		DISLIKE: 0,
-		LOVE: 0,
-		HELPFUL: 0,
-		CELEBRATE: 0,
-		THINKING: 0,
-	};
-
-	groupedReactions.forEach((group) => {
-		reactionSummary[group.reactionType] = group._count._all;
+		},
+		select: { reactionType: true },
 	});
 
 	return {
-		...thread,
-		reactionSummary,
+		...sharedThreadData.thread,
+		reactionSummary: sharedThreadData.reactionSummary,
 		myReaction: myReactionRecord?.reactionType || null,
 	};
 };
@@ -183,6 +235,13 @@ const updateThread = async (
 		},
 	});
 
+	await Promise.all([
+		clearCachePattern(discussionCacheKeys.detail(id)),
+		clearCachePattern(
+			discussionCacheKeys.lessonThreadsPattern(thread.lessonId),
+		),
+	]);
+
 	return updatedThread;
 };
 
@@ -210,6 +269,14 @@ const deleteThread = async (id: string, user: IRequestUser) => {
 		where: { id },
 	});
 
+	await Promise.all([
+		clearCachePattern(discussionCacheKeys.detail(id)),
+		clearCachePattern(
+			discussionCacheKeys.lessonThreadsPattern(thread.lessonId),
+		),
+		clearCachePattern(discussionCacheKeys.comments(id)),
+	]);
+
 	return deletedThread;
 };
 
@@ -235,7 +302,7 @@ const toggleThreadReaction = async (
 		},
 	});
 
-	return await prisma.$transaction(async (tx) => {
+	const result = await prisma.$transaction(async (tx) => {
 		if (!existingReaction) {
 			await tx.discussionThreadReaction.create({
 				data: {
@@ -273,6 +340,15 @@ const toggleThreadReaction = async (
 
 		return { status: "UPDATED", reactionType: payload.reactionType };
 	});
+
+	await Promise.all([
+		clearCachePattern(discussionCacheKeys.detail(threadId)),
+		clearCachePattern(
+			discussionCacheKeys.lessonThreadsPattern(thread.lessonId),
+		),
+	]);
+
+	return result;
 };
 
 const createComment = async (
@@ -305,8 +381,8 @@ const createComment = async (
 		}
 	}
 
-	return await prisma.$transaction(async (tx) => {
-		const comment = await tx.discussionComment.create({
+	const comment = await prisma.$transaction(async (tx) => {
+		const created = await tx.discussionComment.create({
 			data: {
 				threadId,
 				userId: user.userId,
@@ -330,89 +406,130 @@ const createComment = async (
 			});
 		}
 
-		return comment;
+		return created;
 	});
+
+	await Promise.all([
+		clearCachePattern(discussionCacheKeys.comments(threadId)),
+		clearCachePattern(discussionCacheKeys.detail(threadId)),
+		clearCachePattern(
+			discussionCacheKeys.lessonThreadsPattern(thread.lessonId),
+		),
+	]);
+
+	return comment;
 };
 
 const getThreadComments = async (
 	threadId: string,
 	user: IRequestUser,
 ): Promise<ICommentResponseNode[]> => {
-	const thread = await prisma.discussionThread.findUnique({
-		where: { id: threadId },
-	});
+	// 1. Fetch/Cache shared comment tree structure (without myReaction)
+	const sharedTree = await getOrSetCache<ISharedCommentNode[]>(
+		discussionCacheKeys.comments(threadId),
+		async () => {
+			const thread = await prisma.discussionThread.findUnique({
+				where: { id: threadId },
+			});
 
-	if (!thread) {
-		throw new AppError(httpStatus.NOT_FOUND, "Discussion thread not found");
-	}
+			if (!thread) {
+				throw new AppError(httpStatus.NOT_FOUND, "Discussion thread not found");
+			}
 
-	const comments = await prisma.discussionComment.findMany({
-		where: { threadId },
-		orderBy: { createdAt: "asc" },
-		include: {
-			user: { select: safeUserSelect },
-			reactions: {
-				select: {
-					userId: true,
-					reactionType: true,
+			const comments = await prisma.discussionComment.findMany({
+				where: { threadId },
+				orderBy: { createdAt: "asc" },
+				include: {
+					user: { select: safeUserSelect },
+					reactions: {
+						select: {
+							userId: true,
+							reactionType: true,
+						},
+					},
 				},
-			},
+			});
+
+			const nodesMap = new Map<string, ISharedCommentNode>();
+
+			comments.forEach((c) => {
+				const reactionSummary: Record<string, number> = {
+					LIKE: 0,
+					DISLIKE: 0,
+					LOVE: 0,
+					HELPFUL: 0,
+					CELEBRATE: 0,
+					THINKING: 0,
+				};
+
+				c.reactions.forEach((r) => {
+					reactionSummary[r.reactionType] =
+						(reactionSummary[r.reactionType] || 0) + 1;
+				});
+
+				const node: ISharedCommentNode = {
+					id: c.id,
+					threadId: c.threadId,
+					userId: c.isDeleted ? null : c.userId,
+					parentCommentId: c.parentCommentId,
+					body: c.isDeleted ? "[deleted]" : c.body,
+					replyCount: c.replyCount,
+					reactionCount: c.reactionCount,
+					createdAt: c.createdAt,
+					updatedAt: c.updatedAt,
+					isDeleted: c.isDeleted,
+					user: c.isDeleted ? null : c.user,
+					reactionSummary,
+					replies: [],
+				};
+
+				nodesMap.set(c.id, node);
+			});
+
+			const rootComments: ISharedCommentNode[] = [];
+
+			nodesMap.forEach((node) => {
+				if (node.parentCommentId && nodesMap.has(node.parentCommentId)) {
+					nodesMap.get(node.parentCommentId)!.replies.push(node);
+				} else {
+					rootComments.push(node);
+				}
+			});
+
+			return rootComments;
+		},
+		600, // 10 minutes TTL
+	);
+
+	// 2. Fetch user-specific comment reactions for this thread via single indexed query
+	const userReactions = await prisma.discussionCommentReaction.findMany({
+		where: {
+			userId: user.userId,
+			comment: { threadId },
+		},
+		select: {
+			commentId: true,
+			reactionType: true,
 		},
 	});
 
-	const nodesMap = new Map<string, ICommentResponseNode>();
-
-	comments.forEach((c) => {
-		const reactionSummary: Record<string, number> = {
-			LIKE: 0,
-			DISLIKE: 0,
-			LOVE: 0,
-			HELPFUL: 0,
-			CELEBRATE: 0,
-			THINKING: 0,
-		};
-
-		let myReaction: ReactionType | null = null;
-
-		c.reactions.forEach((r) => {
-			reactionSummary[r.reactionType] =
-				(reactionSummary[r.reactionType] || 0) + 1;
-			if (r.userId === user.userId) {
-				myReaction = r.reactionType;
-			}
-		});
-
-		const node: ICommentResponseNode = {
-			id: c.id,
-			threadId: c.threadId,
-			userId: c.isDeleted ? null : c.userId,
-			parentCommentId: c.parentCommentId,
-			body: c.isDeleted ? "[deleted]" : c.body,
-			replyCount: c.replyCount,
-			reactionCount: c.reactionCount,
-			createdAt: c.createdAt,
-			updatedAt: c.updatedAt,
-			isDeleted: c.isDeleted,
-			user: c.isDeleted ? null : c.user,
-			reactionSummary,
-			myReaction,
-			replies: [],
-		};
-
-		nodesMap.set(c.id, node);
+	const userReactionMap = new Map<string, ReactionType>();
+	userReactions.forEach((r) => {
+		userReactionMap.set(r.commentId, r.reactionType);
 	});
 
-	const rootComments: ICommentResponseNode[] = [];
+	// 3. Recursively map and merge myReaction onto the cached shared tree
+	const mapNodeWithMyReaction = (
+		nodes: ISharedCommentNode[],
+	): ICommentResponseNode[] => {
+		return nodes.map((node) => ({
+			...node,
+			myReaction: userReactionMap.get(node.id) || null,
+			replies: mapNodeWithMyReaction(node.replies),
+		}));
+	};
 
-	nodesMap.forEach((node) => {
-		if (node.parentCommentId && nodesMap.has(node.parentCommentId)) {
-			nodesMap.get(node.parentCommentId)!.replies.push(node);
-		} else {
-			rootComments.push(node);
-		}
-	});
-
-	return rootComments;
+	return mapNodeWithMyReaction(sharedTree);
 };
 
 const updateComment = async (
@@ -450,6 +567,8 @@ const updateComment = async (
 		},
 	});
 
+	await clearCachePattern(discussionCacheKeys.comments(comment.threadId));
+
 	return updatedComment;
 };
 
@@ -477,8 +596,13 @@ const deleteComment = async (id: string, user: IRequestUser) => {
 		);
 	}
 
-	return await prisma.$transaction(async (tx) => {
-		const updatedComment = await tx.discussionComment.update({
+	const thread = await prisma.discussionThread.findUnique({
+		where: { id: comment.threadId },
+		select: { lessonId: true },
+	});
+
+	const updatedComment = await prisma.$transaction(async (tx) => {
+		const result = await tx.discussionComment.update({
 			where: { id },
 			data: { isDeleted: true },
 		});
@@ -488,8 +612,22 @@ const deleteComment = async (id: string, user: IRequestUser) => {
 			data: { commentCount: { decrement: 1 } },
 		});
 
-		return updatedComment;
+		return result;
 	});
+
+	await Promise.all([
+		clearCachePattern(discussionCacheKeys.comments(comment.threadId)),
+		clearCachePattern(discussionCacheKeys.detail(comment.threadId)),
+		...(thread
+			? [
+					clearCachePattern(
+						discussionCacheKeys.lessonThreadsPattern(thread.lessonId),
+					),
+				]
+			: []),
+	]);
+
+	return updatedComment;
 };
 
 const toggleCommentReaction = async (
@@ -521,7 +659,7 @@ const toggleCommentReaction = async (
 		},
 	});
 
-	return await prisma.$transaction(async (tx) => {
+	const result = await prisma.$transaction(async (tx) => {
 		if (!existingReaction) {
 			await tx.discussionCommentReaction.create({
 				data: {
@@ -559,6 +697,10 @@ const toggleCommentReaction = async (
 
 		return { status: "UPDATED", reactionType: payload.reactionType };
 	});
+
+	await clearCachePattern(discussionCacheKeys.comments(comment.threadId));
+
+	return result;
 };
 
 export const DiscussionService = {

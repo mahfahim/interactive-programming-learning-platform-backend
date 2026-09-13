@@ -5,7 +5,9 @@ import { prisma } from "../../lib/prisma";
 import { initiateSslPayment, validateSslPayment } from "../../lib/sslcommerz";
 import type { RequestUser } from "../../middlewares/checkAuth";
 import { AppError } from "../../utils/AppError";
-import { assertCourseExists } from "../course/course.utils";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { courseCacheKeys, enrollmentCacheKeys } from "../../utils/cacheKey";
+import { assertCourseExists } from "../../utils/courseLessonAssertions";
 
 // 1. Enroll in free course or initiate payment (bKash / SSLCommerz)
 const enrollCourse = async (
@@ -33,7 +35,7 @@ const enrollCourse = async (
 
 	// A. Free course logic
 	if (!course.price || Number(course.price) <= 0) {
-		return prisma.$transaction(async (tx) => {
+		const result = await prisma.$transaction(async (tx) => {
 			const enrollment = await tx.enrollment.upsert({
 				where: {
 					userId_courseId: { userId: user.userId, courseId: course.id },
@@ -59,6 +61,11 @@ const enrollCourse = async (
 				enrollment,
 			};
 		});
+
+		await clearCachePattern(enrollmentCacheKeys.my(user.userId));
+		await clearCachePattern(courseCacheKeys.pattern);
+
+		return result;
 	}
 
 	// B. Paid course logic
@@ -251,6 +258,9 @@ const handleSslSuccess = async (payload: Record<string, any>) => {
 		}
 	});
 
+	await clearCachePattern(enrollmentCacheKeys.my(payment.userId));
+	await clearCachePattern(courseCacheKeys.pattern);
+
 	return `${config.frontend_url}/payment/callback?status=success&tran_id=${tran_id}`;
 };
 
@@ -274,7 +284,7 @@ const handleSslCancel = async (payload: Record<string, any>) => {
 	return `${config.frontend_url}/payment/callback?status=cancelled&tran_id=${tran_id}`;
 };
 
-// 5. Automatic bKash Callback Handler (NEW)
+// 5. Automatic bKash Callback Handler
 const handleBkashCallback = async (query: Record<string, any>) => {
 	const { paymentID, status } = query;
 
@@ -397,66 +407,47 @@ const handleBkashCallback = async (query: Record<string, any>) => {
 		}
 	});
 
+	await clearCachePattern(enrollmentCacheKeys.my(payment.userId));
+	await clearCachePattern(courseCacheKeys.pattern);
+
 	return `${config.frontend_url}/payment/callback?status=success&paymentID=${paymentID}`;
 };
 
-// 7. Get Enrolled Courses
+// 6. Get Enrolled Courses
 const getMyEnrolledCourses = async (userId: string) => {
-	const enrollments = await prisma.enrollment.findMany({
-		where: { userId, isPaid: true },
-		include: {
-			course: {
-				select: {
-					id: true,
-					title: true,
-					slug: true,
-					coverImageUrl: true,
-				},
-			},
-		},
-		orderBy: { enrolledAt: "desc" },
-	});
-
-	if (enrollments.length === 0) return [];
-
-	const courseIds = enrollments.map((e) => e.courseId);
-
-	const [allLessons, completedProgresses] = await Promise.all([
-		prisma.lesson.findMany({
-			where: {
-				module: {
-					superModule: {
-						courseId: { in: courseIds },
-					},
-				},
-			},
-			select: {
-				id: true,
-				module: {
-					select: {
-						superModule: {
-							select: { courseId: true },
+	return getOrSetCache(
+		enrollmentCacheKeys.my(userId),
+		async () => {
+			const enrollments = await prisma.enrollment.findMany({
+				where: { userId, isPaid: true },
+				include: {
+					course: {
+						select: {
+							id: true,
+							title: true,
+							slug: true,
+							coverImageUrl: true,
 						},
 					},
 				},
-			},
-		}),
-		prisma.lessonProgress.findMany({
-			where: {
-				userId,
-				isCompleted: true,
-				lesson: {
-					module: {
-						superModule: {
-							courseId: { in: courseIds },
+				orderBy: { enrolledAt: "desc" },
+			});
+
+			if (enrollments.length === 0) return [];
+
+			const courseIds = enrollments.map((e) => e.courseId);
+
+			const [allLessons, completedProgresses] = await Promise.all([
+				prisma.lesson.findMany({
+					where: {
+						module: {
+							superModule: {
+								courseId: { in: courseIds },
+							},
 						},
 					},
-				},
-			},
-			select: {
-				lessonId: true,
-				lesson: {
 					select: {
+						id: true,
 						module: {
 							select: {
 								superModule: {
@@ -465,42 +456,71 @@ const getMyEnrolledCourses = async (userId: string) => {
 							},
 						},
 					},
-				},
-			},
-		}),
-	]);
+				}),
+				prisma.lessonProgress.findMany({
+					where: {
+						userId,
+						isCompleted: true,
+						lesson: {
+							module: {
+								superModule: {
+									courseId: { in: courseIds },
+								},
+							},
+						},
+					},
+					select: {
+						lessonId: true,
+						lesson: {
+							select: {
+								module: {
+									select: {
+										superModule: {
+											select: { courseId: true },
+										},
+									},
+								},
+							},
+						},
+					},
+				}),
+			]);
 
-	const totalLessonsMap = new Map<string, number>();
-	const completedLessonsMap = new Map<string, number>();
+			const totalLessonsMap = new Map<string, number>();
+			const completedLessonsMap = new Map<string, number>();
 
-	allLessons.forEach((lesson) => {
-		const cId = lesson.module.superModule.courseId;
-		totalLessonsMap.set(cId, (totalLessonsMap.get(cId) || 0) + 1);
-	});
+			allLessons.forEach((lesson) => {
+				const cId = lesson.module.superModule.courseId;
+				totalLessonsMap.set(cId, (totalLessonsMap.get(cId) || 0) + 1);
+			});
 
-	completedProgresses.forEach((progress) => {
-		const cId = progress.lesson.module.superModule.courseId;
-		completedLessonsMap.set(cId, (completedLessonsMap.get(cId) || 0) + 1);
-	});
+			completedProgresses.forEach((progress) => {
+				const cId = progress.lesson.module.superModule.courseId;
+				completedLessonsMap.set(cId, (completedLessonsMap.get(cId) || 0) + 1);
+			});
 
-	return enrollments.map((enrollment) => {
-		const totalLessons = totalLessonsMap.get(enrollment.courseId) || 0;
-		const completedLessons = completedLessonsMap.get(enrollment.courseId) || 0;
-		const progressPercentage =
-			totalLessons > 0
-				? Number(((completedLessons / totalLessons) * 100).toFixed(2))
-				: 0;
+			return enrollments.map((enrollment) => {
+				const totalLessons = totalLessonsMap.get(enrollment.courseId) || 0;
+				const completedLessons =
+					completedLessonsMap.get(enrollment.courseId) || 0;
+				const progressPercentage =
+					totalLessons > 0
+						? Number(((completedLessons / totalLessons) * 100).toFixed(2))
+						: 0;
 
-		return {
-			enrollmentId: enrollment.id,
-			enrolledAt: enrollment.enrolledAt,
-			isPaid: enrollment.isPaid,
-			course: enrollment.course,
-			progressPercentage,
-			completedLessons,
-			totalLessons,
-		};
-	});
+				return {
+					enrollmentId: enrollment.id,
+					enrolledAt: enrollment.enrolledAt,
+					isPaid: enrollment.isPaid,
+					course: enrollment.course,
+					progressPercentage,
+					completedLessons,
+					totalLessons,
+				};
+			});
+		},
+		300,
+	);
 };
 
 export const EnrollmentService = {

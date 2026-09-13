@@ -30,6 +30,7 @@ model User {
   commentReactions      DiscussionCommentReaction[]
   grades                Grade[]
   certificates          Certificate[]
+  auditLogs             AuditLog[]                  @relation("ActorAuditLogs")
 
   @@index([role])
   @@map("users")

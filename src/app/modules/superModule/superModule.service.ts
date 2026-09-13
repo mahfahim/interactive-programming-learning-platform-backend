@@ -3,7 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { clearCachePattern, getOrSetCache } from "../../utils/cache";
 import { superModuleCacheKeys } from "../../utils/cacheKey";
-import { assertCourseExists } from "../course/course.utils";
+import { assertCourseExists } from "../../utils/courseLessonAssertions";
 import type {
 	ICreateSuperModuleInput,
 	IUpdateSuperModuleInput,

@@ -10,7 +10,8 @@ import { globalRateLimiter } from "./app/middlewares/rateLimiter";
 import { getBkashIdToken } from "./app/lib/bkash";
 import { globalErrorHandler } from "./app/middlewares/globalErrorHandler";
 import { notFound } from "./app/middlewares/notFound";
-
+import { requestContextMiddleware } from "./app/middlewares/requestContext";
+import { AuditLogRoutes } from "./app/modules/auditLog/auditLog.route";
 import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { UserRoutes } from "./app/modules/user/user.route";
 import { CourseRoutes } from "./app/modules/course/course.route";
@@ -24,9 +25,11 @@ import { QuizRoutes } from "./app/modules/quiz/quiz.route";
 import { PaymentRoutes } from "./app/modules/payment/payment.route";
 import { EnrollmentRoutes } from "./app/modules/enrollment/enrollment.routes";
 import { CertificateRoutes } from "./app/modules/certificate/certificate.route";
+import { AnalyticsRoutes } from "./app/modules/analytics/analytics.route";
 
 const app: Application = express();
 
+app.use(requestContextMiddleware);
 app.set("trust proxy", 1);
 
 app.use(
@@ -56,6 +59,7 @@ app.get("/", async (req: Request, res: Response) => {
 	});
 });
 
+app.use("/api/v1/audit-logs", AuditLogRoutes);
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/users", UserRoutes);
 app.use("/api/v1/courses", CourseRoutes);
@@ -69,6 +73,7 @@ app.use("/api/v1/discussions", DiscussionRoutes);
 app.use("/api/v1/certificates", CertificateRoutes);
 app.use("/api/v1/payment", PaymentRoutes);
 app.use("/api/v1/enrollments", EnrollmentRoutes);
+app.use("/api/v1/analytics", AnalyticsRoutes);
 
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 	try {

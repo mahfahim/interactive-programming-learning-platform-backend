@@ -1,14 +1,22 @@
-import { Prisma } from "../../../generated/prisma/client";
 import httpStatus from "http-status";
-import { AppError } from "../../utils/AppError";
+import { Prisma } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
-import { assertLessonExists, verifyLessonAccess } from "../lesson/lesson.utils";
+import { AppError } from "../../utils/AppError";
+import { clearCachePattern, getOrSetCache } from "../../utils/cache";
+import { quizCacheKeys } from "../../utils/cacheKey";
+import {
+	assertLessonExists,
+	verifyLessonAccess,
+} from "../../utils/courseLessonAssertions";
 import type {
 	ICreateQuizPayload,
 	IRequestUser,
 	ISubmitQuizPayload,
 	IUpdateQuizPayload,
 } from "./quiz.interface";
+
+const QUIZ_LESSON_TTL = 600; // 10 minutes
+const QUIZ_DETAIL_TTL = 3600; // 1 hour
 
 const createQuiz = async (payload: ICreateQuizPayload) => {
 	await assertLessonExists(payload.lessonId);
@@ -24,7 +32,7 @@ const createQuiz = async (payload: ICreateQuizPayload) => {
 		);
 	}
 
-	return await prisma.quizLesson.create({
+	const createdQuiz = await prisma.quizLesson.create({
 		data: {
 			lessonId: payload.lessonId,
 			questions: {
@@ -50,6 +58,10 @@ const createQuiz = async (payload: ICreateQuizPayload) => {
 			},
 		},
 	});
+
+	await clearCachePattern(quizCacheKeys.pattern);
+
+	return createdQuiz;
 };
 
 const getQuizByLessonId = async (
@@ -57,37 +69,71 @@ const getQuizByLessonId = async (
 	userId?: string,
 	userRole?: string,
 ) => {
+	// 1. Authorization MUST execute prior to Redis access
 	await verifyLessonAccess(lessonId, userId, userRole);
 
-	const quiz = await prisma.quizLesson.findUnique({
-		where: { lessonId },
-		select: {
-			id: true,
-			lessonId: true,
-			questions: {
-				orderBy: { displayOrder: "asc" },
+	const cacheKey = quizCacheKeys.byLesson(lessonId);
+
+	// 2. Retrieve student-safe quiz definition via Cache-Aside
+	const quiz = await getOrSetCache(
+		cacheKey,
+		async () => {
+			return await prisma.quizLesson.findUnique({
+				where: { lessonId },
 				select: {
 					id: true,
-					quizLessonId: true,
-					questionText: true,
-					displayOrder: true,
-					options: {
+					lessonId: true,
+					questions: {
 						orderBy: { displayOrder: "asc" },
 						select: {
 							id: true,
-							questionId: true,
-							optionText: true,
+							quizLessonId: true,
+							questionText: true,
 							displayOrder: true,
+							options: {
+								orderBy: { displayOrder: "asc" },
+								select: {
+									id: true,
+									questionId: true,
+									optionText: true,
+									displayOrder: true,
+								},
+							},
 						},
 					},
 				},
-			},
+			});
 		},
-	});
+		QUIZ_LESSON_TTL,
+	);
 
 	if (!quiz) {
 		throw new AppError(httpStatus.NOT_FOUND, "Quiz not found for this lesson");
 	}
+
+	return quiz;
+};
+
+const getQuizById = async (id: string) => {
+	const cacheKey = quizCacheKeys.detail(id);
+
+	const quiz = await getOrSetCache(
+		cacheKey,
+		async () => {
+			return await prisma.quizLesson.findUnique({
+				where: { id },
+				include: {
+					questions: {
+						orderBy: { displayOrder: "asc" },
+						include: { options: { orderBy: { displayOrder: "asc" } } },
+					},
+				},
+			});
+		},
+		QUIZ_DETAIL_TTL,
+	);
+
+	if (!quiz) throw new AppError(httpStatus.NOT_FOUND, "Quiz not found");
 
 	return quiz;
 };
@@ -118,6 +164,7 @@ const submitQuiz = async (user: IRequestUser, payload: ISubmitQuizPayload) => {
 		const question = quiz.questions.find(
 			(q) => q.id === submittedAnswer.questionId,
 		);
+
 		if (!question) {
 			throw new AppError(
 				httpStatus.BAD_REQUEST,
@@ -184,11 +231,13 @@ const submitQuiz = async (user: IRequestUser, payload: ISubmitQuizPayload) => {
 
 const updateQuiz = async (id: string, payload: IUpdateQuizPayload) => {
 	const quizExists = await prisma.quizLesson.findUnique({ where: { id } });
+
 	if (!quizExists) throw new AppError(httpStatus.NOT_FOUND, "Quiz not found");
 
 	const existingAttempt = await prisma.quizAttempt.findFirst({
 		where: { quizLessonId: id },
 	});
+
 	if (existingAttempt) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
@@ -196,8 +245,9 @@ const updateQuiz = async (id: string, payload: IUpdateQuizPayload) => {
 		);
 	}
 
-	return await prisma.$transaction(async (tx) => {
+	const updatedQuiz = await prisma.$transaction(async (tx) => {
 		await tx.quizQuestion.deleteMany({ where: { quizLessonId: id } });
+
 		return await tx.quizLesson.update({
 			where: { id },
 			data: {
@@ -223,15 +273,21 @@ const updateQuiz = async (id: string, payload: IUpdateQuizPayload) => {
 			},
 		});
 	});
+
+	await clearCachePattern(quizCacheKeys.pattern);
+
+	return updatedQuiz;
 };
 
 const deleteQuiz = async (id: string) => {
 	const quiz = await prisma.quizLesson.findUnique({ where: { id } });
+
 	if (!quiz) throw new AppError(httpStatus.NOT_FOUND, "Quiz not found");
 
 	const existingAttempt = await prisma.quizAttempt.findFirst({
 		where: { quizLessonId: id },
 	});
+
 	if (existingAttempt) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
@@ -239,22 +295,11 @@ const deleteQuiz = async (id: string) => {
 		);
 	}
 
-	return await prisma.quizLesson.delete({ where: { id } });
-};
+	const deletedQuiz = await prisma.quizLesson.delete({ where: { id } });
 
-const getQuizById = async (id: string) => {
-	const quiz = await prisma.quizLesson.findUnique({
-		where: { id },
-		include: {
-			questions: {
-				orderBy: { displayOrder: "asc" },
-				include: { options: { orderBy: { displayOrder: "asc" } } },
-			},
-		},
-	});
+	await clearCachePattern(quizCacheKeys.pattern);
 
-	if (!quiz) throw new AppError(httpStatus.NOT_FOUND, "Quiz not found");
-	return quiz;
+	return deletedQuiz;
 };
 
 const getAttemptById = async (id: string, user: IRequestUser) => {
@@ -305,6 +350,7 @@ const getAttemptById = async (id: string, user: IRequestUser) => {
 		attemptedAt: attempt.attemptedAt,
 		answers: attempt.answers.map((ans) => {
 			const correctAnswer = ans.question.options.find((opt) => opt.isCorrect);
+
 			return {
 				questionId: ans.questionId,
 				questionText: ans.question.questionText,
@@ -320,7 +366,10 @@ const getAttemptById = async (id: string, user: IRequestUser) => {
 
 const getMyAttempts = async (user: IRequestUser, quizLessonId: string) => {
 	return await prisma.quizAttempt.findMany({
-		where: { userId: user.userId, quizLessonId },
+		where: {
+			userId: user.userId,
+			quizLessonId,
+		},
 		orderBy: { attemptedAt: "desc" },
 		select: {
 			id: true,
@@ -340,7 +389,14 @@ const getQuizAttempts = async (quizLessonId: string) => {
 			id: true,
 			score: true,
 			attemptedAt: true,
-			user: { select: { id: true, name: true, email: true, role: true } },
+			user: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					role: true,
+				},
+			},
 			_count: { select: { answers: true } },
 		},
 	});

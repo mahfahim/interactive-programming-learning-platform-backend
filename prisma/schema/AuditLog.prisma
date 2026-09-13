@@ -1,0 +1,56 @@
+enum AuditAction {
+  // Auth
+  USER_LOGIN_SUCCESS
+  USER_LOGIN_FAILED
+  PASSWORD_CHANGED
+  
+  // User Management
+  ROLE_CHANGE
+  STATUS_CHANGE
+  USER_UPDATED
+  USER_SOFT_DELETED
+  
+  // Course Management
+  COURSE_CREATED
+  COURSE_UPDATED
+  COURSE_PUBLISHED
+  COURSE_DELETED
+  
+  // Enrollment & Payment
+  ENROLLMENT_CREATED
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+
+  // Assessment & Certification
+  ASSIGNMENT_SUBMITTED
+  ASSIGNMENT_GRADED
+  CERTIFICATE_ISSUED
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  actorId     String?     @map("actor_id")
+  actor       User?       @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  
+  action      AuditAction
+  entityType  String      @map("entity_type")
+  entityId    String?     @map("entity_id")
+  description String
+  
+  oldValues   Json?       @map("old_values")
+  newValues   Json?       @map("new_values")
+  metadata    Json?
+  
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  requestId   String?     @map("request_id")
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

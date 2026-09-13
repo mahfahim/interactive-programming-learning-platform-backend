@@ -1,9 +1,12 @@
 import crypto from "node:crypto";
 import StatusCodes from "http-status-codes";
 import PDFDocument from "pdfkit";
+import { Prisma } from "@prisma/client";
 import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { getOrSetCache } from "../../utils/cache";
+import { certificateCacheKeys } from "../../utils/cacheKey";
 import type {
 	ICertificateResponse,
 	ICertificateVerificationResponse,
@@ -322,152 +325,190 @@ const getMyCertificate = async (
 	userId: string,
 	courseId: string,
 ): Promise<ICertificateResponse> => {
-	// 1. Validate course existence
-	const course = await prisma.course.findUnique({
-		where: { id: courseId },
-		select: { id: true, title: true, price: true },
-	});
+	return getOrSetCache(
+		certificateCacheKeys.my(userId, courseId),
+		async () => {
+			// 1. Validate course existence
+			const course = await prisma.course.findUnique({
+				where: { id: courseId },
+				select: { id: true, title: true, price: true },
+			});
 
-	if (!course) {
-		throw new AppError(StatusCodes.NOT_FOUND, "Course not found");
-	}
+			if (!course) {
+				throw new AppError(StatusCodes.NOT_FOUND, "Course not found");
+			}
 
-	const enrollment = await prisma.enrollment.findUnique({
-		where: {
-			userId_courseId: { userId, courseId },
+			const enrollment = await prisma.enrollment.findUnique({
+				where: {
+					userId_courseId: { userId, courseId },
+				},
+				select: { isPaid: true },
+			});
+
+			if (!enrollment) {
+				throw new AppError(
+					StatusCodes.FORBIDDEN,
+					"You are not enrolled in this course.",
+				);
+			}
+
+			if (Number(course.price) > 0 && !enrollment.isPaid) {
+				throw new AppError(
+					StatusCodes.PAYMENT_REQUIRED,
+					"Active paid enrollment required to access certificate.",
+				);
+			}
+
+			const user = await prisma.user.findUnique({
+				where: { id: userId },
+				select: { id: true, name: true, email: true },
+			});
+
+			if (!user) {
+				throw new AppError(StatusCodes.NOT_FOUND, "User profile not found");
+			}
+
+			const existingCertificate = await prisma.certificate.findUnique({
+				where: {
+					userId_courseId: { userId, courseId },
+				},
+			});
+
+			if (existingCertificate) {
+				return {
+					id: existingCertificate.id,
+					userId: existingCertificate.userId,
+					courseId: existingCertificate.courseId,
+					certificateUid: existingCertificate.certificateUid,
+					certificateUrl: existingCertificate.certificateUrl,
+					issuedAt: existingCertificate.issuedAt,
+					courseTitle: course.title,
+					studentName: user.name || "Student",
+				};
+			}
+
+			await verifyCourseCompletion(userId, courseId);
+
+			const certificateUid = await generateUniqueCertificateUid();
+			const studentName = user.name || user.email.split("@")[0] || "Student";
+			const issuedAt = new Date();
+
+			const pdfBuffer = await createCertificatePdfBuffer({
+				studentName,
+				courseTitle: course.title,
+				issuedAt,
+				certificateUid,
+			});
+
+			let uploadResult = { url: "", publicId: "" };
+			try {
+				uploadResult = await uploadCertificateToCloudinary(
+					pdfBuffer,
+					certificateUid,
+				);
+			} catch (error) {
+				console.error("Cloudinary Upload Notice:", (error as Error).message);
+			}
+
+			try {
+				const newCertificate = await prisma.certificate.create({
+					data: {
+						userId,
+						courseId,
+						certificateUid,
+						certificateUrl: uploadResult.url || null,
+						certificatePublicId: uploadResult.publicId || null,
+						issuedAt,
+					},
+				});
+
+				return {
+					id: newCertificate.id,
+					userId: newCertificate.userId,
+					courseId: newCertificate.courseId,
+					certificateUid: newCertificate.certificateUid,
+					certificateUrl: newCertificate.certificateUrl,
+					issuedAt: newCertificate.issuedAt,
+					courseTitle: course.title,
+					studentName,
+				};
+			} catch (error) {
+				// Graceful race condition recovery: if another concurrent request created the record first
+				if (
+					error instanceof Prisma.PrismaClientKnownRequestError &&
+					error.code === "P2002"
+				) {
+					const duplicateCertificate = await prisma.certificate.findUnique({
+						where: { userId_courseId: { userId, courseId } },
+					});
+
+					if (duplicateCertificate) {
+						return {
+							id: duplicateCertificate.id,
+							userId: duplicateCertificate.userId,
+							courseId: duplicateCertificate.courseId,
+							certificateUid: duplicateCertificate.certificateUid,
+							certificateUrl: duplicateCertificate.certificateUrl,
+							issuedAt: duplicateCertificate.issuedAt,
+							courseTitle: course.title,
+							studentName,
+						};
+					}
+				}
+				throw error;
+			}
 		},
-		select: { isPaid: true },
-	});
-
-	if (!enrollment) {
-		throw new AppError(
-			StatusCodes.FORBIDDEN,
-			"You are not enrolled in this course.",
-		);
-	}
-
-	if (Number(course.price) > 0 && !enrollment.isPaid) {
-		throw new AppError(
-			StatusCodes.PAYMENT_REQUIRED,
-			"Active paid enrollment required to access certificate.",
-		);
-	}
-
-	const user = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { id: true, name: true, email: true },
-	});
-
-	if (!user) {
-		throw new AppError(StatusCodes.NOT_FOUND, "User profile not found");
-	}
-
-	const existingCertificate = await prisma.certificate.findUnique({
-		where: {
-			userId_courseId: { userId, courseId },
-		},
-	});
-
-	if (existingCertificate) {
-		return {
-			id: existingCertificate.id,
-			userId: existingCertificate.userId,
-			courseId: existingCertificate.courseId,
-			certificateUid: existingCertificate.certificateUid,
-			certificateUrl: existingCertificate.certificateUrl,
-			issuedAt: existingCertificate.issuedAt,
-			courseTitle: course.title,
-			studentName: user.name || "Student",
-		};
-	}
-
-	await verifyCourseCompletion(userId, courseId);
-
-	const certificateUid = await generateUniqueCertificateUid();
-	const studentName = user.name || user.email.split("@")[0] || "Student";
-	const issuedAt = new Date();
-
-	const pdfBuffer = await createCertificatePdfBuffer({
-		studentName,
-		courseTitle: course.title,
-		issuedAt,
-		certificateUid,
-	});
-
-	let uploadResult = { url: "", publicId: "" };
-	try {
-		uploadResult = await uploadCertificateToCloudinary(
-			pdfBuffer,
-			certificateUid,
-		);
-	} catch (error) {
-		console.error("Cloudinary Upload Notice:", (error as Error).message);
-	}
-
-	const newCertificate = await prisma.certificate.create({
-		data: {
-			userId,
-			courseId,
-			certificateUid,
-			certificateUrl: uploadResult.url || null,
-			certificatePublicId: uploadResult.publicId || null,
-			issuedAt,
-		},
-	});
-
-	return {
-		id: newCertificate.id,
-		userId: newCertificate.userId,
-		courseId: newCertificate.courseId,
-		certificateUid: newCertificate.certificateUid,
-		certificateUrl: newCertificate.certificateUrl,
-		issuedAt: newCertificate.issuedAt,
-		courseTitle: course.title,
-		studentName,
-	};
+		600,
+	);
 };
 
 // Public Certificate Verification
 const verifyCertificate = async (
 	certificateUid: string,
 ): Promise<ICertificateVerificationResponse> => {
-	const certificate = await prisma.certificate.findUnique({
-		where: { certificateUid },
-		include: {
-			user: {
-				select: {
-					name: true,
-					email: true,
+	return getOrSetCache(
+		certificateCacheKeys.verify(certificateUid),
+		async () => {
+			const certificate = await prisma.certificate.findUnique({
+				where: { certificateUid },
+				include: {
+					user: {
+						select: {
+							name: true,
+							email: true,
+						},
+					},
+					course: {
+						select: {
+							title: true,
+						},
+					},
 				},
-			},
-			course: {
-				select: {
-					title: true,
-				},
-			},
+			});
+
+			if (!certificate) {
+				throw new AppError(
+					StatusCodes.NOT_FOUND,
+					"Invalid or non-existent certificate UID.",
+				);
+			}
+
+			const studentName =
+				certificate.user.name ||
+				certificate.user.email.split("@")[0] ||
+				"Verified Student";
+
+			return {
+				isValid: true,
+				certificateUid: certificate.certificateUid,
+				studentName,
+				courseTitle: certificate.course.title,
+				issuedAt: certificate.issuedAt,
+				certificateUrl: certificate.certificateUrl,
+			};
 		},
-	});
-
-	if (!certificate) {
-		throw new AppError(
-			StatusCodes.NOT_FOUND,
-			"Invalid or non-existent certificate UID.",
-		);
-	}
-
-	const studentName =
-		certificate.user.name ||
-		certificate.user.email.split("@")[0] ||
-		"Verified Student";
-
-	return {
-		isValid: true,
-		certificateUid: certificate.certificateUid,
-		studentName,
-		courseTitle: certificate.course.title,
-		issuedAt: certificate.issuedAt,
-		certificateUrl: certificate.certificateUrl,
-	};
+		3600,
+	);
 };
 
 export const CertificateService = {
