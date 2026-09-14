@@ -7,7 +7,7 @@ import type {
 	IUpdateCourseInput,
 	ICourseQueryParams,
 } from "./course.interface";
-import { assertCourseExists } from "./course.utils";
+import { assertCourseExists } from "../../utils/courseLessonAssertions";
 import { getOrSetCache, clearCachePattern } from "../../utils/cache";
 import { courseCacheKeys } from "../../utils/cacheKey";
 

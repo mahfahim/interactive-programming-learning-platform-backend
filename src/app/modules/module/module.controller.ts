@@ -9,7 +9,6 @@ const createModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.CREATED,
-		success: true,
 		message: "Module created successfully",
 		data: result,
 	});
@@ -24,7 +23,6 @@ const getModulesBySuperModule = catchAsync(
 
 		sendResponse(res, {
 			statusCode: StatusCodes.OK,
-			success: true,
 			message: "Modules retrieved successfully",
 			data: result,
 		});
@@ -37,7 +35,6 @@ const getModuleById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Module details retrieved successfully",
 		data: result,
 	});
@@ -49,7 +46,6 @@ const updateModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Module updated successfully",
 		data: result,
 	});
@@ -61,7 +57,6 @@ const deleteModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Module deleted successfully",
 		data: result,
 	});

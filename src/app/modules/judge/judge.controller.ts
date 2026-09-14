@@ -13,7 +13,6 @@ const runCode = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Code executed successfully",
 		data: result,
 	});
@@ -25,7 +24,6 @@ const submitCode = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Code submitted successfully",
 		data: result,
 	});
@@ -38,7 +36,6 @@ const getSubmissionById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Submission fetched successfully",
 		data: result,
 	});
@@ -54,7 +51,6 @@ const getMySubmissions = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "My submissions fetched successfully",
 		data: result,
 	});
@@ -73,7 +69,6 @@ const getCodingLessonByLessonId = catchAsync(
 
 		sendResponse(res, {
 			statusCode: httpStatus.OK,
-			success: true,
 			message: "Coding lesson fetched successfully",
 			data: result,
 		});
@@ -85,7 +80,6 @@ const createCodingLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Coding lesson created successfully",
 		data: result,
 	});
@@ -97,7 +91,6 @@ const updateCodingLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Coding lesson updated successfully",
 		data: result,
 	});
@@ -109,7 +102,6 @@ const updateTestCases = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Test cases updated successfully",
 		data: result,
 	});
@@ -122,7 +114,6 @@ const getCodingLessonSubmissions = catchAsync(
 
 		sendResponse(res, {
 			statusCode: httpStatus.OK,
-			success: true,
 			message: "Coding lesson submissions fetched successfully",
 			data: result,
 		});

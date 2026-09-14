@@ -9,7 +9,6 @@ const createLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.CREATED,
-		success: true,
 		message: "Lesson created successfully",
 		data: result,
 	});
@@ -28,7 +27,6 @@ const getLessonById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Lesson retrieved successfully",
 		data: result,
 	});
@@ -40,7 +38,6 @@ const updateLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Lesson updated successfully",
 		data: result,
 	});
@@ -52,7 +49,6 @@ const deleteLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Lesson deleted successfully",
 		data: result,
 	});
@@ -71,7 +67,6 @@ const getVideoLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Video lesson content retrieved successfully",
 		data: result,
 	});
@@ -86,7 +81,6 @@ const upsertVideoLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Video lesson updated successfully",
 		data: result,
 	});
@@ -105,7 +99,6 @@ const getArticleLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Article lesson content retrieved successfully",
 		data: result,
 	});
@@ -120,7 +113,6 @@ const syncArticleLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Article lesson sections synchronized successfully",
 		data: result,
 	});
@@ -139,7 +131,6 @@ const getLessonProgress = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Lesson progress retrieved successfully",
 		data: result,
 	});
@@ -159,7 +150,6 @@ const updateLessonProgress = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Lesson progress updated successfully",
 		data: result,
 	});

@@ -3,7 +3,6 @@ import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
@@ -13,7 +12,6 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Verification OTP Sent",
 		data: null,
 	});
@@ -40,7 +38,6 @@ const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Email Verified Successfully",
 		data: {
 			accessToken,
@@ -70,7 +67,6 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User logged in successfully",
 		data: {
 			accessToken,
@@ -101,7 +97,6 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "New tokens generated successfully",
 		data: {
 			accessToken,
@@ -109,6 +104,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 		},
 	});
 });
+
 const googleLogin = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
 
@@ -131,7 +127,6 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "New tokens generated successfully",
 		data: {
 			accessToken,
@@ -146,7 +141,6 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: `OTP Sent To Email : ${payload.email}`,
 		data: null,
 	});
@@ -158,7 +152,6 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Password Changed Successfully",
 		data: null,
 	});
@@ -184,7 +177,6 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Logged out successfully",
 		data: null,
 	});

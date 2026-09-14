@@ -14,8 +14,9 @@ import type {
 	IAssignmentGradePayload,
 	IAssignmentSubmitPayload,
 	IAssignmentUpdatePayload,
-	IRequestUser,
 } from "./assignment.interface";
+
+import type { RequestUser } from "../../middlewares/checkAuth";
 
 export const assertAssignmentExists = async (id: string) => {
 	const assignment = await prisma.assignment.findUnique({ where: { id } });
@@ -41,7 +42,7 @@ const createAssignment = async (payload: IAssignmentCreatePayload) => {
 
 const getAssignmentByLessonId = async (
 	lessonId: string,
-	user?: IRequestUser,
+	user?: RequestUser,
 ) => {
 	await verifyLessonAccess(lessonId, user?.userId, user?.role);
 
@@ -62,7 +63,7 @@ const getAssignmentByLessonId = async (
 	);
 };
 
-const getAssignmentById = async (id: string, user?: IRequestUser) => {
+const getAssignmentById = async (id: string, user?: RequestUser) => {
 	const assignment = await getOrSetCache(
 		assignmentCacheKeys.detail(id),
 		async () => {
@@ -133,18 +134,17 @@ const deleteAssignment = async (id: string) => {
 };
 
 const submitAssignment = async (
-	assignmentId: string,
-	user: IRequestUser,
+	user: RequestUser,
 	payload: IAssignmentSubmitPayload,
 ) => {
-	const assignment = await assertAssignmentExists(assignmentId);
+	const assignment = await assertAssignmentExists(payload.assignmentId);
 	await verifyLessonAccess(assignment.lessonId, user.userId, user.role);
 
 	const result = await prisma.assignmentSubmission.upsert({
 		where: {
 			userId_assignmentId: {
 				userId: user.userId,
-				assignmentId,
+				assignmentId: payload.assignmentId,
 			},
 		},
 		create: {
@@ -163,15 +163,17 @@ const submitAssignment = async (
 	});
 
 	await clearCachePattern(
-		assignmentCacheKeys.submission(user.userId, assignmentId),
+		assignmentCacheKeys.submission(user.userId, payload.assignmentId),
 	);
-	await clearCachePattern(assignmentCacheKeys.submissions(assignmentId));
-	await clearCachePattern(assignmentCacheKeys.detail(assignmentId));
+	await clearCachePattern(
+		assignmentCacheKeys.submissions(payload.assignmentId),
+	);
+	await clearCachePattern(assignmentCacheKeys.detail(payload.assignmentId));
 
 	return result;
 };
 
-const getMySubmission = async (assignmentId: string, user: IRequestUser) => {
+const getMySubmission = async (user: RequestUser, assignmentId: string) => {
 	const assignment = await assertAssignmentExists(assignmentId);
 	await verifyLessonAccess(assignment.lessonId, user.userId, user.role);
 
@@ -199,7 +201,7 @@ const getMySubmission = async (assignmentId: string, user: IRequestUser) => {
 
 const getAssignmentSubmissions = async (
 	assignmentId: string,
-	user?: IRequestUser,
+	user?: RequestUser,
 ) => {
 	const assignment = await assertAssignmentExists(assignmentId);
 	await verifyLessonAccess(assignment.lessonId, user?.userId, user?.role);
@@ -217,7 +219,7 @@ const getAssignmentSubmissions = async (
 
 const gradeSubmission = async (
 	submissionId: string,
-	user: IRequestUser,
+	user: RequestUser,
 	payload: IAssignmentGradePayload,
 ) => {
 	const submissionExists = await prisma.assignmentSubmission.findUnique({

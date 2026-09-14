@@ -1,9 +1,3 @@
-export interface IRequestUser {
-	userId: string;
-	role: string;
-	email?: string;
-}
-
 export interface IAssignmentCreatePayload {
 	title: string;
 	instructions: string;

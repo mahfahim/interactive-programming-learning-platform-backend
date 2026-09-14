@@ -23,7 +23,6 @@ import type {
 	IGoogleLoginPayload,
 	ILoginUserPayload,
 	IRegisterPayload,
-	IRequestUser,
 	IResetPasswordPayload,
 	IVerifyEmailPayload,
 } from "./auth.interface";

@@ -29,7 +29,6 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Users retrieved successfully",
 		meta: {
 			page: result.meta.page,
@@ -47,7 +46,6 @@ const getUserById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User profile retrieved successfully",
 		data: result,
 	});
@@ -61,7 +59,6 @@ const adminUpdateUser = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User updated successfully by admin",
 		data: result,
 	});
@@ -73,7 +70,6 @@ const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User account soft deleted successfully",
 		data: result,
 	});
@@ -85,7 +81,6 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Current user profile fetched successfully",
 		data: result,
 	});
@@ -99,7 +94,6 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User profile updated successfully",
 		data: result,
 	});
@@ -113,7 +107,6 @@ const syncMyEducations = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Educational records synchronized successfully",
 		data: result,
 	});
@@ -127,7 +120,6 @@ const syncMyExperiences = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Work experience records synchronized successfully",
 		data: result,
 	});
@@ -141,7 +133,6 @@ const syncMySkills = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Skills matrix synchronized successfully",
 		data: result,
 	});
@@ -155,7 +146,6 @@ const syncMySocials = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Social links synchronized successfully",
 		data: result,
 	});
@@ -169,7 +159,6 @@ const syncMyWebsites = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Personal websites synchronized successfully",
 		data: result,
 	});
@@ -186,7 +175,6 @@ const uploadProfileImage = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Profile image uploaded successfully",
 		data: result,
 	});

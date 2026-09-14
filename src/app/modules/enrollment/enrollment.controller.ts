@@ -22,7 +22,6 @@ const enrollCourse = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: result.isPaidCourse
 			? "Payment URL generated successfully"
 			: "Successfully enrolled in free course",
@@ -60,7 +59,6 @@ const getMyEnrolledCourses = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Enrolled courses retrieved successfully",
 		data: result,
 	});

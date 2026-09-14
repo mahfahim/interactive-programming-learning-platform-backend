@@ -9,7 +9,6 @@ const createCourse = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.CREATED,
-		success: true,
 		message: "Course created successfully",
 		data: result,
 	});
@@ -29,7 +28,6 @@ const getCourses = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Courses retrieved successfully",
 		data: result.data,
 		meta: result.meta,
@@ -42,7 +40,6 @@ const getMyCourses = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Instructor courses retrieved successfully",
 		data: result,
 	});
@@ -54,7 +51,6 @@ const getCourseById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Course details retrieved successfully",
 		data: result,
 	});
@@ -66,7 +62,6 @@ const updateCourse = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Course updated successfully",
 		data: result,
 	});
@@ -78,7 +73,6 @@ const deleteCourse = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Course deleted successfully",
 		data: result,
 	});

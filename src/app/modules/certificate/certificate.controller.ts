@@ -16,7 +16,6 @@ const getMyCertificate = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Course completion certificate fetched successfully",
 		data: result,
 	});
@@ -31,7 +30,6 @@ const verifyCertificate = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Certificate verified successfully",
 		data: result,
 	});

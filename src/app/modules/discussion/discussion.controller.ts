@@ -13,7 +13,6 @@ const createThread = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Discussion thread created successfully",
 		data: result,
 	});
@@ -28,7 +27,6 @@ const getThreadsByLesson = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Discussion threads fetched successfully",
 		data: result.data,
 		meta: result.meta,
@@ -42,7 +40,6 @@ const getThreadById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Discussion thread fetched successfully",
 		data: result,
 	});
@@ -59,7 +56,6 @@ const updateThread = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Discussion thread updated successfully",
 		data: result,
 	});
@@ -72,7 +68,6 @@ const deleteThread = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Discussion thread deleted successfully",
 		data: result,
 	});
@@ -89,7 +84,6 @@ const toggleThreadReaction = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Thread reaction updated successfully",
 		data: result,
 	});
@@ -106,7 +100,6 @@ const createComment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Comment created successfully",
 		data: result,
 	});
@@ -122,7 +115,6 @@ const getThreadComments = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Thread comments fetched successfully",
 		data: result,
 	});
@@ -139,7 +131,6 @@ const updateComment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Comment updated successfully",
 		data: result,
 	});
@@ -152,7 +143,6 @@ const deleteComment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Comment deleted successfully",
 		data: result,
 	});
@@ -170,7 +160,6 @@ const toggleCommentReaction = catchAsync(
 
 		sendResponse(res, {
 			statusCode: httpStatus.OK,
-			success: true,
 			message: "Comment reaction updated successfully",
 			data: result,
 		});

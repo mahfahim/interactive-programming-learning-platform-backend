@@ -21,12 +21,6 @@ export interface IVerifyEmailPayload {
 	otp: string;
 }
 
-export interface IRequestUser {
-	userId: string;
-	email: string;
-	name: string;
-	role: Role;
-}
 
 export interface IGoogleLoginPayload {
 	idToken: string;

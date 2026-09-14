@@ -10,7 +10,6 @@ const createQuiz = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Quiz created successfully",
 		data: result,
 	});
@@ -22,7 +21,6 @@ const getQuizByLessonId = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz fetched successfully",
 		data: result,
 	});
@@ -34,7 +32,6 @@ const getQuizById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz details fetched successfully",
 		data: result,
 	});
@@ -46,7 +43,6 @@ const updateQuiz = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz updated successfully",
 		data: result,
 	});
@@ -58,7 +54,6 @@ const deleteQuiz = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz deleted successfully",
 		data: result,
 	});
@@ -70,7 +65,6 @@ const submitQuiz = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Quiz submitted successfully",
 		data: result,
 	});
@@ -83,7 +77,6 @@ const getAttemptById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz attempt fetched successfully",
 		data: result,
 	});
@@ -96,7 +89,6 @@ const getMyAttempts = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "My attempts fetched successfully",
 		data: result,
 	});
@@ -108,7 +100,6 @@ const getQuizAttempts = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Quiz attempts fetched successfully",
 		data: result,
 	});

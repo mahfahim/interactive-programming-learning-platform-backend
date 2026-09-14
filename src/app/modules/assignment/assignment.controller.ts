@@ -4,7 +4,7 @@ import { AppError } from "../../utils/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { uploadToCloudinary } from "../../utils/cloudinaryUpload";
 import { sendResponse } from "../../utils/sendResponse";
-import type { IRequestUser } from "./assignment.interface";
+import type { RequestUser } from "../../middlewares/checkAuth";
 import { AssignmentService } from "./assignment.service";
 
 const createAssignment = catchAsync(async (req: Request, res: Response) => {
@@ -12,7 +12,6 @@ const createAssignment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
-		success: true,
 		message: "Assignment created successfully",
 		data: result,
 	});
@@ -27,7 +26,6 @@ const getAssignmentByLessonId = catchAsync(
 
 		sendResponse(res, {
 			statusCode: httpStatus.OK,
-			success: true,
 			message: "Assignment fetched successfully",
 			data: result,
 		});
@@ -36,12 +34,11 @@ const getAssignmentByLessonId = catchAsync(
 
 const getAssignmentById = catchAsync(async (req: Request, res: Response) => {
 	const { id } = req.params;
-	const user = req.user as unknown as IRequestUser;
+	const user = req.user as RequestUser;
 	const result = await AssignmentService.getAssignmentById(id as string, user);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Assignment details fetched successfully",
 		data: result,
 	});
@@ -56,7 +53,6 @@ const updateAssignment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Assignment updated successfully",
 		data: result,
 	});
@@ -68,14 +64,13 @@ const deleteAssignment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Assignment deleted successfully",
 		data: result,
 	});
 });
 
 const submitAssignment = catchAsync(async (req: Request, res: Response) => {
-	const user = req.user as unknown as IRequestUser;
+	const user = req.user as RequestUser;
 	const files = req.files as Express.Multer.File[];
 
 	if (!files || files.length === 0) {
@@ -95,7 +90,6 @@ const submitAssignment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Assignment submitted successfully",
 		data: result,
 	});
@@ -103,7 +97,7 @@ const submitAssignment = catchAsync(async (req: Request, res: Response) => {
 
 const getMySubmission = catchAsync(async (req: Request, res: Response) => {
 	const { assignmentId } = req.params;
-	const user = req.user as unknown as IRequestUser;
+	const user = req.user as RequestUser;
 	const result = await AssignmentService.getMySubmission(
 		user,
 		assignmentId as string,
@@ -111,7 +105,6 @@ const getMySubmission = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "My submission fetched successfully",
 		data: result,
 	});
@@ -126,7 +119,6 @@ const getAssignmentSubmissions = catchAsync(
 
 		sendResponse(res, {
 			statusCode: httpStatus.OK,
-			success: true,
 			message: "Assignment submissions fetched successfully",
 			data: result,
 		});
@@ -135,7 +127,7 @@ const getAssignmentSubmissions = catchAsync(
 
 const gradeSubmission = catchAsync(async (req: Request, res: Response) => {
 	const { submissionId } = req.params;
-	const user = req.user as unknown as IRequestUser;
+	const user = req.user as RequestUser;
 	const result = await AssignmentService.gradeSubmission(
 		submissionId as string,
 		user,
@@ -144,7 +136,6 @@ const gradeSubmission = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Assignment submission graded successfully",
 		data: result,
 	});

@@ -14,7 +14,6 @@ const getMyPayments = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "User payments retrieved successfully",
 		data: result.data,
 		meta: result.meta,
@@ -25,7 +24,6 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
 	const { data, meta } = await PaymentServices.getAllPayments(req.query);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Payments Retrieved Successfully",
 		data,
 		meta,
@@ -42,7 +40,6 @@ const getSinglePayment = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Payment Retrieved Successfully",
 		data: result,
 	});
@@ -56,7 +53,6 @@ const initiateRefund = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
-		success: true,
 		message: "Payment refunded and course enrollment cancelled successfully",
 		data: result,
 	});

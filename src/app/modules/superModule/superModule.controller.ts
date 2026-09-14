@@ -9,7 +9,6 @@ const createSuperModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.CREATED,
-		success: true,
 		message: "Super module created successfully",
 		data: result,
 	});
@@ -24,7 +23,6 @@ const getSuperModulesByCourse = catchAsync(
 
 		sendResponse(res, {
 			statusCode: StatusCodes.OK,
-			success: true,
 			message: "Super modules retrieved successfully",
 			data: result,
 		});
@@ -37,7 +35,6 @@ const getSuperModuleById = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Super module details retrieved successfully",
 		data: result,
 	});
@@ -52,7 +49,6 @@ const updateSuperModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Super module updated successfully",
 		data: result,
 	});
@@ -64,7 +60,6 @@ const deleteSuperModule = catchAsync(async (req: Request, res: Response) => {
 
 	sendResponse(res, {
 		statusCode: StatusCodes.OK,
-		success: true,
 		message: "Super module deleted successfully",
 		data: result,
 	});
