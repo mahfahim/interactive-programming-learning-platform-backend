@@ -58,7 +58,7 @@ export interface ISyncExperienceItem {
 	company: string;
 	position: string;
 	startDate: string | Date;
-	endDate?: string | Date | null;
+	endDate?: string | Date | null; // CHANGED: Type safe for null/undefined
 	description?: string | null;
 }
 

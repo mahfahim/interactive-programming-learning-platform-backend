@@ -1,5 +1,4 @@
 // src/modules/user/user.interface.ts
-import type { Role } from "../../../generated/prisma/enums";
 
 export interface IRegisterPayload {
 	name: string;
@@ -20,7 +19,6 @@ export interface IVerifyEmailPayload {
 	email: string;
 	otp: string;
 }
-
 
 export interface IGoogleLoginPayload {
 	idToken: string;

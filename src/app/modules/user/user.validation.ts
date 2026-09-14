@@ -6,6 +6,22 @@ import {
 	ProficiencyLevel,
 } from "../../../generated/prisma/client";
 
+const isoDateSchema = z
+	.string()
+	.refine((val) => !Number.isNaN(Date.parse(val)), {
+		message: "Invalid start date format (ISO 8601 string expected)",
+	});
+
+const optionalIsoDateSchema = z
+	.union([
+		z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
+			message: "Invalid end date format",
+		}),
+		z.null(),
+		z.undefined(),
+	])
+	.optional();
+
 const userFilterSchema = z.object({
 	search: z.string().optional(),
 	role: z.nativeEnum(Role).optional(),
@@ -19,14 +35,10 @@ const userFilterSchema = z.object({
 const adminUpdateUserSchema = z.object({
 	name: z.string().min(1, "Name cannot be empty").optional(),
 	role: z
-		.nativeEnum(Role, {
-			message: "Invalid user role specified",
-		})
+		.nativeEnum(Role, { message: "Invalid user role specified" })
 		.optional(),
 	status: z
-		.nativeEnum(UserStatus, {
-			message: "Invalid user status specified",
-		})
+		.nativeEnum(UserStatus, { message: "Invalid user status specified" })
 		.optional(),
 	isDeleted: z.boolean().optional(),
 });
@@ -49,18 +61,8 @@ const syncEducationsSchema = z.object({
 			institution: z.string({ message: "Institution name is required" }).min(1),
 			degree: z.string({ message: "Degree is required" }).min(1),
 			fieldOfStudy: z.string({ message: "Field of study is required" }).min(1),
-			startDate: z
-				.string({ message: "Start date is required" })
-				.refine((val) => !Number.isNaN(Date.parse(val)), {
-					message: "Invalid start date format (ISO 8601 string expected)",
-				}),
-			endDate: z
-				.string()
-				.refine((val) => !Number.isNaN(Date.parse(val)), {
-					message: "Invalid end date format",
-				})
-				.nullable()
-				.optional(),
+			startDate: isoDateSchema,
+			endDate: optionalIsoDateSchema,
 		}),
 	),
 });
@@ -70,18 +72,8 @@ const syncExperiencesSchema = z.object({
 		z.object({
 			company: z.string({ message: "Company name is required" }).min(1),
 			position: z.string({ message: "Position title is required" }).min(1),
-			startDate: z
-				.string({ message: "Start date is required" })
-				.refine((val) => !Number.isNaN(Date.parse(val)), {
-					message: "Invalid start date format (ISO 8601 string expected)",
-				}),
-			endDate: z
-				.string()
-				.refine((val) => !Number.isNaN(Date.parse(val)), {
-					message: "Invalid end date format",
-				})
-				.nullable()
-				.optional(),
+			startDate: isoDateSchema,
+			endDate: optionalIsoDateSchema,
 			description: z.string().nullable().optional(),
 		}),
 	),

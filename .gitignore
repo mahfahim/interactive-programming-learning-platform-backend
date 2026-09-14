@@ -5,3 +5,4 @@ src/generated/
 dist/
 .vercel
 .env.local
+z.md

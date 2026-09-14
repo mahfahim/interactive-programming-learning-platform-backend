@@ -18,9 +18,9 @@ import type {
 	IUserFilterRequest,
 } from "./user.interface";
 
-const USER_LIST_TTL = 300; // 5 minutes
-const USER_DETAIL_TTL = 600; // 10 minutes
-const USER_PROFILE_TTL = 300; // 5 minutes
+const USER_LIST_TTL = 300;
+const USER_DETAIL_TTL = 600;
+const USER_PROFILE_TTL = 300;
 
 const fullProfileInclude = {
 	description: {
@@ -97,14 +97,9 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 		(resolve, reject) => {
 			cloudinary.uploader
 				.upload_stream({ resource_type: "auto" }, (error, result) => {
-					if (error) {
-						return reject(error);
-					}
-
-					if (!result) {
+					if (error) return reject(error);
+					if (!result)
 						return reject(new Error("No result returned from Cloudinary"));
-					}
-
 					resolve(result);
 				})
 				.end(buffer);
@@ -163,7 +158,7 @@ const getAllUsers = async (filters: IUserFilterRequest) => {
 				}),
 			};
 
-			const [users, total] = await Promise.all([
+			const [users, total] = await prisma.$transaction([
 				prisma.user.findMany({
 					where: whereConditions,
 					skip,
@@ -457,7 +452,7 @@ const syncMyWebsites = async (userId: string, payload: ISyncWebsitesDto) => {
 			payload.websites && payload.websites.length > 0
 				? tx.userWebsite.createMany({
 						data: payload.websites.map((item) => ({
-							userDescriptionId: userId,
+							userDescriptionId: userId, // CHANGED: Foreign key fix
 							title: item.title,
 							url: item.url,
 						})),

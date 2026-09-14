@@ -264,7 +264,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
 };
 
 const refreshToken = async (token: string) => {
-	// Check if the token is blacklisted in Redis
 	const isBlacklisted = await redisClient.get(`blacklisted-token:${token}`);
 	if (isBlacklisted) {
 		throw new AppError(

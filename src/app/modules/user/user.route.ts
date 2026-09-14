@@ -5,7 +5,7 @@ import { UserValidation } from "./user.validation";
 import { auth } from "../../middlewares/checkAuth";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { upload } from "../../lib/multer";
-import { authRateLimiter } from "../../middlewares/rateLimiter"; // 👈 Rate Limiter
+import { authRateLimiter } from "../../middlewares/rateLimiter";
 
 const router = express.Router();
 
@@ -24,11 +24,12 @@ router.patch(
 
 router.patch(
 	"/me/upload-image",
-	authRateLimiter, // 👈 ক্লাউড স্টোরেজ ও ফাইল স্প্যাম প্রটেকশন
+	authRateLimiter,
 	auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
 	upload.single("image"),
 	UserController.uploadProfileImage,
 );
+
 
 router.patch(
 	"/me/educations",
