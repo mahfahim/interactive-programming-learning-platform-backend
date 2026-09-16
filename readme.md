@@ -1,4 +1,4 @@
-# 💻 DevSphere Backend API
+#  Interactive Programming Learning Platform Backend API
 
 > A scalable, feature-rich RESTful backend API for an **Interactive Programming Learning Platform** built with **Node.js, Express.js, TypeScript, Prisma, PostgreSQL, and SSLCommerz/bKash/Stripe**.
 
