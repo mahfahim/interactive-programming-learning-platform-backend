@@ -8,6 +8,7 @@
 		"build": "prisma generate && tsup",
 		"start": "node dist/server.js",
 		"dev": "tsx watch ./src/server.ts",
+		"seed": "prisma db seed",
 		"format:check": "npx @biomejs/biome format ./src",
 		"format:fix": "npx @biomejs/biome format --write ./src",
 		"lint:check": "npx @biomejs/biome lint ./src",
