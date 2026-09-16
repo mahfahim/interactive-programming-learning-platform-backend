@@ -1,6 +1,6 @@
-#  Code BD Code backend api
+# DevSphere Backend API
 
-> A scalable, feature-rich RESTful backend API for an **Interactive Programming Learning Platform** built with **Node.js, Express.js, TypeScript, Prisma, PostgreSQL, and SSLCommerz/bKash/Stripe**.
+> A scalable, feature-rich RESTful backend API for an **Interactive Programming Learning Platform** built with **Node.js, Express.js, TypeScript, Prisma, PostgreSQL, Redis, and SSLCommerz/bKash**.
 
 ---
 
@@ -18,9 +18,9 @@ The system enforces strict **Role-Based Access Control (RBAC)** across three pri
 
 | Resource | Link |
 | --- | --- |
-| 🌐 Live API | [https://devsphere-backend.onrender.com/](https://www.google.com/search?q=https://devsphere-backend.onrender.com/) |
+| 🌐 Live API | [https://devsphere-backend.onrender.com/](https://devsphere-backend.onrender.com/) |
 | 📮 Postman Documentation | [https://documenter.getpostman.com/view/52004920/2sBY4Qtffz](https://documenter.getpostman.com/view/52004920/2sBY4Qtffz) |
-| 💻 GitHub Repository | [https://github.com/mahfahim/DevSphere-backend](https://www.google.com/search?q=https://github.com/mahfahim/DevSphere-backend) |
+| 💻 GitHub Repository | [https://github.com/mahfahim/DevSphere-backend](https://github.com/mahfahim/DevSphere-backend) |
 
 ---
 
@@ -41,10 +41,10 @@ Password:
 
 ## Authentication & Security
 
-* **JWT Authentication:** Secure access token and HTTP-only cookie refresh token flow.
+* **JWT Authentication:** Access token and HTTP-only cookie refresh token flow managed via Redis.
 * **Social Auth:** GCP Google OAuth 2.0 integration.
 * **RBAC:** Fine-grained role-based access control (`STUDENT`, `TEACHER`, `ADMIN`).
-* **Security Middlewares:** Password hashing with `bcrypt`, `helmet` HTTP headers, CORS policies, and rate-limiting.
+* **Security Middlewares:** Password hashing with `bcrypt`, `helmet` HTTP headers, CORS policies, rate-limiting, and request context tracking.
 
 ## Course & Content Management
 
@@ -55,15 +55,16 @@ Password:
 
 ## Interactive Assessment & Submissions
 
-* **Coding Engine Integration:** Automated test-case execution for student code submissions with memory and execution time tracking.
+* **Coding Engine Integration:** External Judge0 API integration for automated test-case execution with memory and time-limit tracking.
 * **Dynamic Quiz Engine:** Multi-choice questions with real-time scoring, attempt history, and passing criteria checks.
 * **Assignment Submissions:** GitHub repository submission workflow with instructor grading and score tracking.
 
 ## Progress, Certification & Payments
 
-* **Progress Tracking:** Granular progress calculation across modules, coding tasks, and quizzes.
+* **Progress Tracking & Caching:** Granular progress calculation backed by Redis cache strategy.
 * **Certificate Generation:** Automated issuance of unique verifiable certificates upon 100% course completion.
-* **Payment Gateway Integration:** Payment processing via Stripe, bKash, and SSLCommerz with secure webhook handlers and transaction logs.
+* **Payment Gateway Integration:** Tokenized bKash Checkout and SSLCommerz payment integration with validation webhooks.
+* **Email & Media Management:** Nodemailer templates for transactional emails and Cloudinary for file asset management.
 * **Audit Logging:** System-wide tracking of sensitive actions and entity state changes.
 
 ---
@@ -72,16 +73,19 @@ Password:
 
 ## Core Backend
 
-* **Framework:** Express.js with TypeScript
+* **Framework:** Express.js with TypeScript (`tsup` builder)
 * **Database & ORM:** PostgreSQL & Prisma ORM
+* **Caching & Memory Database:** Redis
 * **Authentication:** JWT, bcrypt, Google OAuth (GCP)
 * **Validation:** Zod schema validation
 
 ## External Integrations & Services
 
-* **Code Execution:** External Code Execution Engine / Judge0 API
-* **Payment Gateways:** SSLCommerz, bKash, Stripe
-* **Deployment:** Render / Vercel (API & Engine), PostgreSQL Cloud
+* **Code Execution:** Judge0 API Engine
+* **Payment Gateways:** bKash Checkout API, SSLCommerz
+* **Media Storage:** Cloudinary
+* **Email Service:** Nodemailer with EJS Templating
+* **Deployment:** Render / Vercel, Managed PostgreSQL Cloud
 
 ---
 
@@ -139,106 +143,20 @@ INTERACTIVE-PROGRAMMING-LEARNING-PLATFORM-BACKEND/
 │   │   │
 │   │   ├── modules/
 │   │   │   ├── analytics/
-│   │   │   │   ├── analytics.controller.ts
-│   │   │   │   ├── analytics.route.ts
-│   │   │   │   └── analytics.service.ts
-│   │   │   │
 │   │   │   ├── assignment/
-│   │   │   │   ├── assignment.controller.ts
-│   │   │   │   ├── assignment.interface.ts
-│   │   │   │   ├── assignment.route.ts
-│   │   │   │   ├── assignment.service.ts
-│   │   │   │   └── assignment.validation.ts
-│   │   │   │
 │   │   │   ├── auditLog/
-│   │   │   │   ├── auditLog.constant.ts
-│   │   │   │   ├── auditLog.controller.ts
-│   │   │   │   ├── auditLog.interface.ts
-│   │   │   │   ├── auditLog.route.ts
-│   │   │   │   ├── auditLog.service.ts
-│   │   │   │   └── auditLog.validation.ts
-│   │   │   │
 │   │   │   ├── auth/
-│   │   │   │   ├── auth.controller.ts
-│   │   │   │   ├── auth.interface.ts
-│   │   │   │   ├── auth.route.ts
-│   │   │   │   ├── auth.service.ts
-│   │   │   │   └── auth.validation.ts
-│   │   │   │
 │   │   │   ├── certificate/
-│   │   │   │   ├── certificate.controller.ts
-│   │   │   │   ├── certificate.interface.ts
-│   │   │   │   ├── certificate.route.ts
-│   │   │   │   └── certificate.service.ts
-│   │   │   │
 │   │   │   ├── course/
-│   │   │   │   ├── course.controller.ts
-│   │   │   │   ├── course.interface.ts
-│   │   │   │   ├── course.route.ts
-│   │   │   │   ├── course.service.ts
-│   │   │   │   └── course.validation.ts
-│   │   │   │
 │   │   │   ├── discussion/
-│   │   │   │   ├── discussion.controller.ts
-│   │   │   │   ├── discussion.interface.ts
-│   │   │   │   ├── discussion.route.ts
-│   │   │   │   ├── discussion.service.ts
-│   │   │   │   └── discussion.validation.ts
-│   │   │   │
 │   │   │   ├── enrollment/
-│   │   │   │   ├── enrollment.controller.ts
-│   │   │   │   ├── enrollment.routes.ts
-│   │   │   │   ├── enrollment.service.ts
-│   │   │   │   └── enrollment.validation.ts
-│   │   │   │
 │   │   │   ├── judge/
-│   │   │   │   ├── judge.controller.ts
-│   │   │   │   ├── judge.interface.ts
-│   │   │   │   ├── judge.route.ts
-│   │   │   │   ├── judge.service.ts
-│   │   │   │   ├── judge.utils.ts
-│   │   │   │   └── judge.validation.ts
-│   │   │   │
 │   │   │   ├── lesson/
-│   │   │   │   ├── lesson.controller.ts
-│   │   │   │   ├── lesson.interface.ts
-│   │   │   │   ├── lesson.route.ts
-│   │   │   │   ├── lesson.service.ts
-│   │   │   │   └── lesson.validation.ts
-│   │   │   │
 │   │   │   ├── module/
-│   │   │   │   ├── module.controller.ts
-│   │   │   │   ├── module.interface.ts
-│   │   │   │   ├── module.route.ts
-│   │   │   │   ├── module.service.ts
-│   │   │   │   └── module.validation.ts
-│   │   │   │
 │   │   │   ├── payment/
-│   │   │   │   ├── payment.controller.ts
-│   │   │   │   ├── payment.route.ts
-│   │   │   │   ├── payment.service.ts
-│   │   │   │   └── payment.validation.ts
-│   │   │   │
 │   │   │   ├── quiz/
-│   │   │   │   ├── quiz.controller.ts
-│   │   │   │   ├── quiz.interface.ts
-│   │   │   │   ├── quiz.route.ts
-│   │   │   │   ├── quiz.service.ts
-│   │   │   │   └── quiz.validation.ts
-│   │   │   │
 │   │   │   ├── superModule/
-│   │   │   │   ├── superModule.controller.ts
-│   │   │   │   ├── superModule.interface.ts
-│   │   │   │   ├── superModule.route.ts
-│   │   │   │   ├── superModule.service.ts
-│   │   │   │   └── superModule.validation.ts
-│   │   │   │
 │   │   │   └── user/
-│   │   │       ├── user.controller.ts
-│   │   │       ├── user.interface.ts
-│   │   │       ├── user.route.ts
-│   │   │       ├── user.service.ts
-│   │   │       └── user.validation.ts
 │   │   │
 │   │   ├── templates/
 │   │   │   ├── forgot-password.ejs
@@ -261,58 +179,6 @@ INTERACTIVE-PROGRAMMING-LEARNING-PLATFORM-BACKEND/
 │   │
 │   └── generated/
 │       └── prisma/
-│           ├── browser.ts
-│           ├── client.ts
-│           ├── commonInputTypes.ts
-│           ├── enums.ts
-│           ├── models.ts
-│           ├── internal/
-│           │   ├── class.ts
-│           │   ├── prismaNamespace.ts
-│           │   └── prismaNamespaceBrowser.ts
-│           └── models/
-│               ├── ArticleLesson.ts
-│               ├── ArticleSection.ts
-│               ├── Assignment.ts
-│               ├── AssignmentSubmission.ts
-│               ├── AuditLog.ts
-│               ├── Certificate.ts
-│               ├── City.ts
-│               ├── CodingAnswer.ts
-│               ├── CodingLesson.ts
-│               ├── CodingTestCase.ts
-│               ├── Country.ts
-│               ├── Course.ts
-│               ├── CourseDescription.ts
-│               ├── CourseLearningOutcome.ts
-│               ├── CoursePrerequisite.ts
-│               ├── DiscussionComment.ts
-│               ├── DiscussionCommentReaction.ts
-│               ├── DiscussionThread.ts
-│               ├── DiscussionThreadReaction.ts
-│               ├── District.ts
-│               ├── Division.ts
-│               ├── Enrollment.ts
-│               ├── Grade.ts
-│               ├── Lesson.ts
-│               ├── LessonProgress.ts
-│               ├── Module.ts
-│               ├── Payment.ts
-│               ├── QuizAttempt.ts
-│               ├── QuizAttemptAnswer.ts
-│               ├── QuizLesson.ts
-│               ├── QuizOption.ts
-│               ├── QuizQuestion.ts
-│               ├── Skill.ts
-│               ├── SuperModule.ts
-│               ├── User.ts
-│               ├── UserDescription.ts
-│               ├── UserEducation.ts
-│               ├── UserExperience.ts
-│               ├── UserSkill.ts
-│               ├── UserSocial.ts
-│               ├── UserWebsite.ts
-│               └── VideoLesson.ts
 │
 ├── .env
 ├── .gitignore
@@ -350,42 +216,63 @@ npm install
 
 ## Environment Variables
 
-Create a `.env` file in the root folder.
+Create a `.env` file in the root directory matching your `src/config/index.ts`:
 
 ```env
 # Server Configuration
 PORT=5000
 NODE_ENV=development
-APP_URL=http://localhost:5000
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:5000
 
 # Database Connection (PostgreSQL)
 DATABASE_URL=postgresql://user:password@localhost:5432/devsphere_db?schema=public
+DIRECT_URL=postgresql://user:password@localhost:5432/devsphere_db?schema=public
 
 # Security & Secrets
 BCRYPT_SALT_ROUNDS=12
-JWT_ACCESS_SECRET=YOUR_SUPER_SECRET_ACCESS_KEY
+JWT_SECRET=YOUR_SUPER_SECRET_ACCESS_KEY
 JWT_REFRESH_SECRET=YOUR_SUPER_SECRET_REFRESH_KEY
 JWT_ACCESS_EXPIRES_IN=1d
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Google OAuth Credentials
 GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/v1/auth/google/callback
 
-# Payment Gateway Setup
-PAYMENT_GATEWAY_PROVIDER=BKASH # Options: BKASH, SSLCOMMERZ, STRIPE
-STRIPE_SECRET_KEY=YOUR_STRIPE_SECRET_KEY
-SSL_STORE_ID=YOUR_SSLCOMMERZ_STORE_ID
-SSL_STORE_PASSWORD=YOUR_SSLCOMMERZ_STORE_PASSWORD
+# Redis Configuration
+REDIS_USER=default
+REDIS_PASSWORD=YOUR_REDIS_PASSWORD
+REDIS_HOST=YOUR_REDIS_HOST
+REDIS_PORT=6379
+
+# SMTP Email Configuration
+SMTP_USER=YOUR_SMTP_EMAIL
+SMTP_PASSWORD=YOUR_SMTP_APP_PASSWORD
+EMAIL_SENDER=YOUR_SMTP_EMAIL
+
+# Cloudinary Upload Credentials
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_NAME
+CLOUDINARY_API_KEY=YOUR_CLOUDINARY_KEY
+CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_SECRET
+
+# bKash Payment Credentials
+BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
+BKASH_USERNAME=sandboxTokenizedUser02
+BKASH_PASSWORD=sandboxTokenizedUser02@12345
 BKASH_APP_KEY=YOUR_BKASH_APP_KEY
 BKASH_APP_SECRET=YOUR_BKASH_APP_SECRET
-BKASH_USERNAME=YOUR_BKASH_USERNAME
-BKASH_PASSWORD=YOUR_BKASH_PASSWORD
 
-# Code Execution Engine API
+# SSLCommerz Credentials
+SSL_STORE_ID=YOUR_SSL_STORE_ID
+SSL_STORE_PASSWORD=YOUR_SSL_STORE_PASSWORD
+SSL_IS_LIVE=false
+SSL_PAYMENT_API=https://sandbox.sslcommerz.com/gwprocess/v4/api.php
+SSL_VALIDATION_API=https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php
+
+# Judge0 Execution Engine Credentials
 JUDGE0_API_URL=https://judge0-ce.p.rapidapi.com
-JUDGE0_API_KEY=YOUR_RAPIDAPI_JUDGE0_KEY
+JUDGE0_KEY=YOUR_RAPIDAPI_JUDGE0_KEY
+JUDGE0_HOST=judge0-ce.p.rapidapi.com
 
 ```
 
@@ -492,7 +379,7 @@ npm start
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET` | `/api/v1/coding-lessons/:id` | Fetch problem statement & test cases |
-| `POST` | `/api/v1/coding-lessons/:id/submit` | Submit code solution for automated evaluation |
+| `POST` | `/api/v1/coding-lessons/:id/submit` | Submit code solution for automated evaluation via Judge0 |
 | `GET` | `/api/v1/coding-lessons/submissions/me` | View user's past code submissions |
 
 ---
@@ -512,8 +399,8 @@ npm start
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/api/v1/payments/initiate` | Initiate payment checkout session |
-| `POST` | `/api/v1/payments/webhook` | Webhook endpoint for status confirmation |
+| `POST` | `/api/v1/payments/initiate` | Initiate payment checkout session (bKash/SSLCommerz) |
+| `POST` | `/api/v1/payments/webhook` | Webhook endpoint for transaction confirmation |
 | `GET` | `/api/v1/payments/my-payments` | View personal transaction history |
 | `GET` | `/api/v1/certificates/:courseId` | Claim/download course completion certificate |
 
@@ -981,38 +868,6 @@ erDiagram
 
 ---
 
-## Key Database Tables
-
-* **User / UserDescription / UserSkill:** Authentication details, core profiles, social links, education, work experience, and proficiency levels.
-* **Location Entities (Country, Division, District, City):** Hierarchical geographic system for user profiles.
-* **Course / CourseDescription / SuperModule / Module / Lesson:** Core course hierarchy structuring all learning materials.
-* **Lesson Content Entities (VideoLesson, ArticleLesson, CodingLesson, QuizLesson, Assignment):** Specific content details depending on lesson types.
-* **Assessment & Grading (CodingAnswer, QuizAttempt, AssignmentSubmission, Grade):** Detailed storage for code executions, quiz attempts, submitted assignments, and overall course scores.
-* **Enrollment, Payment & Certificate:** Handles financial transactions, active course access, and completion certification.
-* **Discussions (DiscussionThread, DiscussionComment, Reactions):** Community interaction per lesson.
-* **AuditLog:** Tracks system actions for security, compliance, and debugging.
-
----
-
-## Entity Relationships Summary
-
-| Source Entity | Target Entity | Relationship Type | Description |
-| --- | --- | --- | --- |
-| **User** | **Course** | One-to-Many `(1 : N)` | An instructor (User) can create and manage multiple courses. |
-| **Course** | **SuperModule** | One-to-Many `(1 : N)` | A course contains multiple high-level SuperModules. |
-| **SuperModule** | **Module** | One-to-Many `(1 : N)` | A SuperModule groups several granular modules. |
-| **Module** | **Lesson** | One-to-Many `(1 : N)` | A module contains multiple learning lessons. |
-| **Lesson** | **CodingLesson** | One-to-One `(1 : 0..1)` | A lesson can optionally be an interactive coding problem. |
-| **Lesson** | **QuizLesson** | One-to-One `(1 : 0..1)` | A lesson can optionally be a dynamic quiz assessment. |
-| **Lesson** | **Assignment** | One-to-One `(1 : 0..1)` | A lesson can optionally be a project assignment. |
-| **User** | **CodingAnswer** | One-to-Many `(1 : N)` | A student submits multiple code evaluations over time. |
-| **User** | **Enrollment** | One-to-Many `(1 : N)` | A student can enroll in multiple courses. |
-| **User** | **Payment** | One-to-Many `(1 : N)` | A user generates payment transactions during course checkout. |
-| **User** | **Certificate** | One-to-Many `(1 : N)` | A student receives certificates upon finishing courses. |
-| **User** | **AuditLog** | One-to-Many `(1 : N)` | Platform actors record events in system audit logs. |
-
----
-
 # 🧪 Standard API Error Response Format
 
 ```json
@@ -1040,6 +895,7 @@ erDiagram
 * **Data Sanitization:** Strict input validation on all request payloads using **Zod**.
 * **Role Verification:** Route authorization guards enforcing exact access rights based on JWT token roles.
 * **Transaction Safety:** Database operations involving money or user access strictly execute inside **Prisma Transactions**.
+* **Redis Caching:** Sensitive payment tokens (such as bKash ID & Refresh Tokens) are cached in Redis to prevent rate limit issues.
 
 ---
 
@@ -1047,13 +903,12 @@ erDiagram
 
 Supported payment providers:
 
-* **bKash:** Direct mobile banking checkout and webhook handling.
-* **SSLCommerz:** Multi-card and local payment gateway support.
-* **Stripe:** International card payments and subscription intents.
+* **bKash:** Direct tokenized checkout, token auto-refreshing via Redis, and webhook IPN processing.
+* **SSLCommerz:** Multi-card, internet banking, and mobile wallet checkout integration.
 
 ---
 
 # 📦 Deployment
 
-* **Backend Platform:** Render / Vercel Node.js Serverless Environment.
-* **Database:** Cloud PostgreSQL Instance (Supabase / Neon / Render Postgres).
+* **Backend Platform:** Render Node.js Runtime.
+* **Database & Cache:** Managed PostgreSQL Cloud (Supabase/Neon) and Cloud Redis (Upstash/Redis Labs).
