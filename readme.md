@@ -88,135 +88,240 @@ Password:
 # 📂 Folder Structure
 
 ```text
-DEVSPHERE-BACKEND/
-├── dist/
-├── node_modules/
+INTERACTIVE-PROGRAMMING-LEARNING-PLATFORM-BACKEND/
+│
 ├── prisma/
-│   ├── migrations/
-│   └── schema.prisma
-├── scripts/
-│   └── seed.ts
+│   ├── seed.ts
+│   │
+│   └── schema/
+│       ├── assessment.prisma
+│       ├── AuditLog.prisma
+│       ├── certificate.prisma
+│       ├── coding.prisma
+│       ├── common.prisma
+│       ├── course.prisma
+│       ├── discussion.prisma
+│       ├── enrollment.prisma
+│       ├── enums.prisma
+│       ├── identity.prisma
+│       ├── payment.prisma
+│       ├── quiz.prisma
+│       └── schema.prisma
+│
 ├── src/
-│   ├── config/
-│   │   ├── index.ts
-│   │   ├── google.config.ts
-│   │   └── payment.config.ts
-│   ├── errors/
-│   │   └── AppError.ts
-│   ├── lib/
-│   │   └── prisma.ts
-│   ├── middlewares/
-│   │   ├── auth.ts
-│   │   ├── globalErrorHandler.ts
-│   │   ├── notFound.ts
-│   │   └── validateRequest.ts
-│   ├── modules/
-│   │   ├── admin/
-│   │   │   ├── admin.controller.ts
-│   │   │   ├── admin.interface.ts
-│   │   │   ├── admin.route.ts
-│   │   │   ├── admin.service.ts
-│   │   │   └── admin.validation.ts
-│   │   ├── assignment/
-│   │   │   ├── assignment.controller.ts
-│   │   │   ├── assignment.interface.ts
-│   │   │   ├── assignment.route.ts
-│   │   │   ├── assignment.service.ts
-│   │   │   └── assignment.validation.ts
-│   │   ├── auditLog/
-│   │   │   ├── auditLog.controller.ts
-│   │   │   ├── auditLog.route.ts
-│   │   │   └── auditLog.service.ts
-│   │   ├── auth/
-│   │   │   ├── auth.controller.ts
-│   │   │   ├── auth.interface.ts
-│   │   │   ├── auth.route.ts
-│   │   │   ├── auth.service.ts
-│   │   │   └── auth.validation.ts
-│   │   ├── certificate/
-│   │   │   ├── certificate.controller.ts
-│   │   │   ├── certificate.route.ts
-│   │   │   └── certificate.service.ts
-│   │   ├── codingLesson/
-│   │   │   ├── codingLesson.controller.ts
-│   │   │   ├── codingLesson.interface.ts
-│   │   │   ├── codingLesson.route.ts
-│   │   │   ├── codingLesson.service.ts
-│   │   │   └── codingLesson.validation.ts
-│   │   ├── course/
-│   │   │   ├── course.controller.ts
-│   │   │   ├── course.interface.ts
-│   │   │   ├── course.route.ts
-│   │   │   ├── course.service.ts
-│   │   │   └── course.validation.ts
-│   │   ├── discussion/
-│   │   │   ├── discussion.controller.ts
-│   │   │   ├── discussion.interface.ts
-│   │   │   ├── discussion.route.ts
-│   │   │   ├── discussion.service.ts
-│   │   │   └── discussion.validation.ts
-│   │   ├── enrollment/
-│   │   │   ├── enrollment.controller.ts
-│   │   │   ├── enrollment.interface.ts
-│   │   │   ├── enrollment.route.ts
-│   │   │   ├── enrollment.service.ts
-│   │   │   └── enrollment.validation.ts
-│   │   ├── lesson/
-│   │   │   ├── lesson.controller.ts
-│   │   │   ├── lesson.interface.ts
-│   │   │   ├── lesson.route.ts
-│   │   │   ├── lesson.service.ts
-│   │   │   └── lesson.validation.ts
-│   │   ├── module/
-│   │   │   ├── module.controller.ts
-│   │   │   ├── module.interface.ts
-│   │   │   ├── module.route.ts
-│   │   │   ├── module.service.ts
-│   │   │   └── module.validation.ts
-│   │   ├── payment/
-│   │   │   ├── payment.controller.ts
-│   │   │   ├── payment.interface.ts
-│   │   │   ├── payment.route.ts
-│   │   │   ├── payment.service.ts
-│   │   │   ├── payment.utils.ts
-│   │   │   └── payment.validation.ts
-│   │   ├── progress/
-│   │   │   ├── progress.controller.ts
-│   │   │   ├── progress.route.ts
-│   │   │   └── progress.service.ts
-│   │   ├── quiz/
-│   │   │   ├── quiz.controller.ts
-│   │   │   ├── quiz.interface.ts
-│   │   │   ├── quiz.route.ts
-│   │   │   ├── quiz.service.ts
-│   │   │   └── quiz.validation.ts
-│   │   ├── user/
-│   │   │   ├── user.controller.ts
-│   │   │   ├── user.interface.ts
-│   │   │   ├── user.route.ts
-│   │   │   ├── user.service.ts
-│   │   │   └── user.validation.ts
-│   │   └── superModule/
-│   │       ├── superModule.controller.ts
-│   │       ├── superModule.interface.ts
-│   │       ├── superModule.route.ts
-│   │       ├── superModule.service.ts
-│   │       └── superModule.validation.ts
-│   ├── utils/
-│   │   ├── catchAsync.ts
-│   │   ├── jwt.ts
-│   │   ├── pick.ts
-│   │   └── sendResponse.ts
 │   ├── app.ts
-│   └── server.ts
+│   ├── server.ts
+│   │
+│   ├── app/
+│   │   ├── config/
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── interfaces/
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── lib/
+│   │   │   ├── bkash.ts
+│   │   │   ├── cloudinary.ts
+│   │   │   ├── googleAuth.ts
+│   │   │   ├── multer.ts
+│   │   │   ├── nodemailer.ts
+│   │   │   ├── prisma.ts
+│   │   │   ├── redis.ts
+│   │   │   └── sslcommerz.ts
+│   │   │
+│   │   ├── middlewares/
+│   │   │   ├── checkAuth.ts
+│   │   │   ├── globalErrorHandler.ts
+│   │   │   ├── notFound.ts
+│   │   │   ├── rateLimiter.ts
+│   │   │   ├── requestContext.ts
+│   │   │   └── validateRequest.ts
+│   │   │
+│   │   ├── modules/
+│   │   │   ├── analytics/
+│   │   │   │   ├── analytics.controller.ts
+│   │   │   │   ├── analytics.route.ts
+│   │   │   │   └── analytics.service.ts
+│   │   │   │
+│   │   │   ├── assignment/
+│   │   │   │   ├── assignment.controller.ts
+│   │   │   │   ├── assignment.interface.ts
+│   │   │   │   ├── assignment.route.ts
+│   │   │   │   ├── assignment.service.ts
+│   │   │   │   └── assignment.validation.ts
+│   │   │   │
+│   │   │   ├── auditLog/
+│   │   │   │   ├── auditLog.constant.ts
+│   │   │   │   ├── auditLog.controller.ts
+│   │   │   │   ├── auditLog.interface.ts
+│   │   │   │   ├── auditLog.route.ts
+│   │   │   │   ├── auditLog.service.ts
+│   │   │   │   └── auditLog.validation.ts
+│   │   │   │
+│   │   │   ├── auth/
+│   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── auth.interface.ts
+│   │   │   │   ├── auth.route.ts
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   └── auth.validation.ts
+│   │   │   │
+│   │   │   ├── certificate/
+│   │   │   │   ├── certificate.controller.ts
+│   │   │   │   ├── certificate.interface.ts
+│   │   │   │   ├── certificate.route.ts
+│   │   │   │   └── certificate.service.ts
+│   │   │   │
+│   │   │   ├── course/
+│   │   │   │   ├── course.controller.ts
+│   │   │   │   ├── course.interface.ts
+│   │   │   │   ├── course.route.ts
+│   │   │   │   ├── course.service.ts
+│   │   │   │   └── course.validation.ts
+│   │   │   │
+│   │   │   ├── discussion/
+│   │   │   │   ├── discussion.controller.ts
+│   │   │   │   ├── discussion.interface.ts
+│   │   │   │   ├── discussion.route.ts
+│   │   │   │   ├── discussion.service.ts
+│   │   │   │   └── discussion.validation.ts
+│   │   │   │
+│   │   │   ├── enrollment/
+│   │   │   │   ├── enrollment.controller.ts
+│   │   │   │   ├── enrollment.routes.ts
+│   │   │   │   ├── enrollment.service.ts
+│   │   │   │   └── enrollment.validation.ts
+│   │   │   │
+│   │   │   ├── judge/
+│   │   │   │   ├── judge.controller.ts
+│   │   │   │   ├── judge.interface.ts
+│   │   │   │   ├── judge.route.ts
+│   │   │   │   ├── judge.service.ts
+│   │   │   │   ├── judge.utils.ts
+│   │   │   │   └── judge.validation.ts
+│   │   │   │
+│   │   │   ├── lesson/
+│   │   │   │   ├── lesson.controller.ts
+│   │   │   │   ├── lesson.interface.ts
+│   │   │   │   ├── lesson.route.ts
+│   │   │   │   ├── lesson.service.ts
+│   │   │   │   └── lesson.validation.ts
+│   │   │   │
+│   │   │   ├── module/
+│   │   │   │   ├── module.controller.ts
+│   │   │   │   ├── module.interface.ts
+│   │   │   │   ├── module.route.ts
+│   │   │   │   ├── module.service.ts
+│   │   │   │   └── module.validation.ts
+│   │   │   │
+│   │   │   ├── payment/
+│   │   │   │   ├── payment.controller.ts
+│   │   │   │   ├── payment.route.ts
+│   │   │   │   ├── payment.service.ts
+│   │   │   │   └── payment.validation.ts
+│   │   │   │
+│   │   │   ├── quiz/
+│   │   │   │   ├── quiz.controller.ts
+│   │   │   │   ├── quiz.interface.ts
+│   │   │   │   ├── quiz.route.ts
+│   │   │   │   ├── quiz.service.ts
+│   │   │   │   └── quiz.validation.ts
+│   │   │   │
+│   │   │   ├── superModule/
+│   │   │   │   ├── superModule.controller.ts
+│   │   │   │   ├── superModule.interface.ts
+│   │   │   │   ├── superModule.route.ts
+│   │   │   │   ├── superModule.service.ts
+│   │   │   │   └── superModule.validation.ts
+│   │   │   │
+│   │   │   └── user/
+│   │   │       ├── user.controller.ts
+│   │   │       ├── user.interface.ts
+│   │   │       ├── user.route.ts
+│   │   │       ├── user.service.ts
+│   │   │       └── user.validation.ts
+│   │   │
+│   │   ├── templates/
+│   │   │   ├── forgot-password.ejs
+│   │   │   ├── registration-user-otp.ejs
+│   │   │   ├── reset-password-success.ejs
+│   │   │   └── user-welcome-email.ejs
+│   │   │
+│   │   └── utils/
+│   │       ├── AppError.ts
+│   │       ├── asyncLocalStorage.ts
+│   │       ├── cache.ts
+│   │       ├── cacheKey.ts
+│   │       ├── catchAsync.ts
+│   │       ├── checkProAccess.ts
+│   │       ├── cloudinaryUpload.ts
+│   │       ├── courseLessonAssertions.ts
+│   │       ├── jwt.ts
+│   │       ├── sanitizeAuditData.ts
+│   │       └── sendResponse.ts
+│   │
+│   └── generated/
+│       └── prisma/
+│           ├── browser.ts
+│           ├── client.ts
+│           ├── commonInputTypes.ts
+│           ├── enums.ts
+│           ├── models.ts
+│           ├── internal/
+│           │   ├── class.ts
+│           │   ├── prismaNamespace.ts
+│           │   └── prismaNamespaceBrowser.ts
+│           └── models/
+│               ├── ArticleLesson.ts
+│               ├── ArticleSection.ts
+│               ├── Assignment.ts
+│               ├── AssignmentSubmission.ts
+│               ├── AuditLog.ts
+│               ├── Certificate.ts
+│               ├── City.ts
+│               ├── CodingAnswer.ts
+│               ├── CodingLesson.ts
+│               ├── CodingTestCase.ts
+│               ├── Country.ts
+│               ├── Course.ts
+│               ├── CourseDescription.ts
+│               ├── CourseLearningOutcome.ts
+│               ├── CoursePrerequisite.ts
+│               ├── DiscussionComment.ts
+│               ├── DiscussionCommentReaction.ts
+│               ├── DiscussionThread.ts
+│               ├── DiscussionThreadReaction.ts
+│               ├── District.ts
+│               ├── Division.ts
+│               ├── Enrollment.ts
+│               ├── Grade.ts
+│               ├── Lesson.ts
+│               ├── LessonProgress.ts
+│               ├── Module.ts
+│               ├── Payment.ts
+│               ├── QuizAttempt.ts
+│               ├── QuizAttemptAnswer.ts
+│               ├── QuizLesson.ts
+│               ├── QuizOption.ts
+│               ├── QuizQuestion.ts
+│               ├── Skill.ts
+│               ├── SuperModule.ts
+│               ├── User.ts
+│               ├── UserDescription.ts
+│               ├── UserEducation.ts
+│               ├── UserExperience.ts
+│               ├── UserSkill.ts
+│               ├── UserSocial.ts
+│               ├── UserWebsite.ts
+│               └── VideoLesson.ts
+│
 ├── .env
 ├── .gitignore
-├── package-lock.json
 ├── package.json
+├── package-lock.json
 ├── prisma.config.ts
-├── README.md
 ├── tsconfig.json
-└── tsup.config.ts
+├── tsup.config.ts
+└── README.md
 
 ```
 
