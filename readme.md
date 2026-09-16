@@ -1,10 +1,10 @@
-# DevSphere Backend API
+# CODE BD CODE Backend API
 
 > A scalable, feature-rich RESTful backend API for an **Interactive Programming Learning Platform** built with **Node.js, Express.js, TypeScript, Prisma, PostgreSQL, Redis, and SSLCommerz/bKash**.
 
 ---
 
-DevSphere is an interactive programming learning platform designed to train software engineers. Beyond traditional video and text lessons, DevSphere provides an end-to-end interactive learning environment featuring structured course hierarchies, interactive coding challenges, automated quizzes, assignment workflows, and integrated payment processing.
+CODE BD CODE is an interactive programming learning platform designed to train software engineers. Beyond traditional video and text lessons, it provides an end-to-end interactive learning environment featuring structured course hierarchies, interactive coding challenges, automated quizzes, assignment workflows, and integrated payment processing.
 
 The system enforces strict **Role-Based Access Control (RBAC)** across three primary user roles:
 
@@ -18,9 +18,9 @@ The system enforces strict **Role-Based Access Control (RBAC)** across three pri
 
 | Resource | Link |
 | --- | --- |
-| 🌐 Live API | [https://devsphere-backend.onrender.com/](https://devsphere-backend.onrender.com/) |
+| 🌐 Live API | [https://code-bd-code-backend.vercel.app/](https://code-bd-code-backend.vercel.app/) |
 | 📮 Postman Documentation | [https://documenter.getpostman.com/view/52004920/2sBY4Qtffz](https://documenter.getpostman.com/view/52004920/2sBY4Qtffz) |
-| 💻 GitHub Repository | [https://github.com/mahfahim/DevSphere-backend](https://github.com/mahfahim/DevSphere-backend) |
+| 💻 GitHub Repository | [https://github.com/mahfahim/interactive-programming-learning-platform-backend](https://github.com/mahfahim/interactive-programming-learning-platform-backend) |
 
 ---
 
