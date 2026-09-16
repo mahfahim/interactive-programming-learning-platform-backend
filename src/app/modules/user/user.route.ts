@@ -30,7 +30,6 @@ router.patch(
 	UserController.uploadProfileImage,
 );
 
-
 router.patch(
 	"/me/educations",
 	auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
