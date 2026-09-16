@@ -19,7 +19,7 @@ The system enforces strict **Role-Based Access Control (RBAC)** across three pri
 | Resource | Link |
 | --- | --- |
 | 🌐 Live API | [https://code-bd-code-backend.vercel.app/](https://code-bd-code-backend.vercel.app/) |
-| 📮 Postman Documentation | [https://documenter.getpostman.com/view/52004920/2sBY4Qtffz](https://documenter.getpostman.com/view/52004920/2sBY4Qtffz) |
+| 📮 Postman Documentation | [https://documenter.getpostman.com/view/52004920/2sBYB1MTLY](https://documenter.getpostman.com/view/52004920/2sBYB1MTLY) |
 | 💻 GitHub Repository | [https://github.com/mahfahim/interactive-programming-learning-platform-backend](https://github.com/mahfahim/interactive-programming-learning-platform-backend) |
 
 ---
@@ -219,60 +219,60 @@ npm install
 Create a `.env` file in the root directory matching your `src/config/index.ts`:
 
 ```env
-# Server Configuration
-PORT=5000
 NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:5000
+# NODE_ENV="production"
 
-# Database Connection (PostgreSQL)
-DATABASE_URL=postgresql://user:password@localhost:5432/devsphere_db?schema=public
-DIRECT_URL=postgresql://user:password@localhost:5432/devsphere_db?schema=public
+DATABASE_URL="your_database_connection_url"
+DIRECT_URL="your_direct_database_connection_url"
 
-# Security & Secrets
+PORT=5000
+# FRONTEND_URL="your_local_frontend_url"
+# FRONTEND_URL="your_production_frontend_url"
+FRONTEND_URL="your_frontend_url"
+BACKEND_URL="your_backend_url"
+
 BCRYPT_SALT_ROUNDS=12
-JWT_SECRET=YOUR_SUPER_SECRET_ACCESS_KEY
-JWT_REFRESH_SECRET=YOUR_SUPER_SECRET_REFRESH_KEY
-JWT_ACCESS_EXPIRES_IN=1d
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_SECRET="your_jwt_secret_key"
+JWT_REFRESH_SECRET="your_jwt_refresh_secret_key"
+JWT_ACCESS_EXPIRES_IN="1d"
+JWT_REFRESH_EXPIRES_IN="7d"
 
-# Google OAuth Credentials
-GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_ID="your_google_client_id"
 
-# Redis Configuration
-REDIS_USER=default
-REDIS_PASSWORD=YOUR_REDIS_PASSWORD
-REDIS_HOST=YOUR_REDIS_HOST
+# Created by Vercel CLI
+VERCEL_OIDC_TOKEN="your_vercel_oidc_token"
+
+REDIS_USER="your_redis_user"
+REDIS_PASSWORD="your_redis_password"
+REDIS_HOST="your_redis_host"
 REDIS_PORT=6379
 
-# SMTP Email Configuration
-SMTP_USER=YOUR_SMTP_EMAIL
-SMTP_PASSWORD=YOUR_SMTP_APP_PASSWORD
-EMAIL_SENDER=YOUR_SMTP_EMAIL
+SMTP_USER="your_smtp_email"
+SMTP_PASSWORD="your_smtp_password"
+EMAIL_SENDER="your_sender_email"
 
-# Cloudinary Upload Credentials
-CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_NAME
-CLOUDINARY_API_KEY=YOUR_CLOUDINARY_KEY
-CLOUDINARY_API_SECRET=YOUR_CLOUDINARY_SECRET
+CLOUDINARY_CLOUD_NAME="your_cloud_name"
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
 
-# bKash Payment Credentials
-BKASH_BASE_URL=https://tokenized.sandbox.bka.sh/v1.2.0-beta
-BKASH_USERNAME=sandboxTokenizedUser02
-BKASH_PASSWORD=sandboxTokenizedUser02@12345
-BKASH_APP_KEY=YOUR_BKASH_APP_KEY
-BKASH_APP_SECRET=YOUR_BKASH_APP_SECRET
+# BKASH_BASE_URL="your_bkash_sandbox_url"
+BKASH_BASE_URL="your_bkash_live_url"
+BKASH_USERNAME="your_bkash_username"
+BKASH_PASSWORD="your_bkash_password"
+BKASH_APP_KEY="your_bkash_app_key"
+BKASH_APP_SECRET="your_bkash_app_secret"
 
-# SSLCommerz Credentials
-SSL_STORE_ID=YOUR_SSL_STORE_ID
-SSL_STORE_PASSWORD=YOUR_SSL_STORE_PASSWORD
+# SSLCommerz
+SSL_STORE_ID="your_ssl_store_id"
+SSL_STORE_PASSWORD="your_ssl_store_password"
 SSL_IS_LIVE=false
-SSL_PAYMENT_API=https://sandbox.sslcommerz.com/gwprocess/v4/api.php
-SSL_VALIDATION_API=https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php
+SSL_PAYMENT_API="your_ssl_payment_api_url"
+SSL_VALIDATION_API="your_ssl_validation_api_url"
 
-# Judge0 Execution Engine Credentials
-JUDGE0_API_URL=https://judge0-ce.p.rapidapi.com
-JUDGE0_KEY=YOUR_RAPIDAPI_JUDGE0_KEY
-JUDGE0_HOST=judge0-ce.p.rapidapi.com
+# Judge0 API Configurations
+JUDGE0_API_URL="your_judge0_api_url"
+JUDGE0_HOST="your_judge0_host"
+JUDGE0_KEY="your_judge0_api_key"
 
 ```
 
@@ -911,4 +911,4 @@ Supported payment providers:
 # 📦 Deployment
 
 * **Backend Platform:** Render Node.js Runtime.
-* **Database & Cache:** Managed PostgreSQL Cloud (Supabase/Neon) and Cloud Redis (Upstash/Redis Labs).
+* **Database & Cache:** Managed PostgreSQL Cloud (Neon) and Cloud Redis (Redis Labs).
