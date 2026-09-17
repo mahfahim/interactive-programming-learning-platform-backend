@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
 import type { JwtPayload } from "jsonwebtoken";
-import type { Role } from "../../generated/prisma/enums";
+import { UserStatus, type Role } from "../../generated/prisma/enums";
 import config from "../config";
 import { prisma } from "../lib/prisma";
+import { AppError } from "../utils/AppError";
 import { catchAsync } from "../utils/catchAsync";
 import { jwtUtils } from "../utils/jwt";
 import { updateRequestContextActor } from "./requestContext";
@@ -31,21 +33,28 @@ export const auth = (...requiredRoles: Role[]) => {
 				: req.headers.authorization;
 
 		if (!token) {
-			throw new Error(
+			throw new AppError(
+				httpStatus.UNAUTHORIZED,
 				"You are not logged in. Please log in to access this resource.",
 			);
 		}
 
 		const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
 
+		
 		if (!verifiedToken.success) {
-			throw new Error(verifiedToken.error);
+			throw new AppError(
+				httpStatus.UNAUTHORIZED,
+				verifiedToken.error || "Invalid or expired token.",
+			);
 		}
 
 		const { email, name, userId, role } = verifiedToken.data as JwtPayload;
 
+
 		if (requiredRoles.length && !requiredRoles.includes(role)) {
-			throw new Error(
+			throw new AppError(
+				httpStatus.FORBIDDEN,
 				"Forbidden. You don't have permission to access this resource.",
 			);
 		}
@@ -54,17 +63,31 @@ export const auth = (...requiredRoles: Role[]) => {
 			where: {
 				id: userId,
 				email,
-				name,
 				role,
 			},
 		});
 
+		
 		if (!user) {
-			throw new Error("User not found. Please log in again.");
+			throw new AppError(
+				httpStatus.UNAUTHORIZED,
+				"User not found. Please log in again.",
+			);
 		}
 
-		if (user.status === "BLOCKED") {
-			throw new Error("Your account has been blocked. Please contact support.");
+		
+		if (user.status === UserStatus.BLOCKED) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"Your account has been blocked. Please contact support.",
+			);
+		}
+
+		if (user.isDeleted || user.status === UserStatus.DELETED) {
+			throw new AppError(
+				httpStatus.FORBIDDEN,
+				"Your account has been deleted.",
+			);
 		}
 
 		req.user = {
