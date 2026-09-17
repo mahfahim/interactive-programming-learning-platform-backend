@@ -227,6 +227,7 @@ const updateCourse = async (id: string, payload: IUpdateCourseInput) => {
 				title: payload.title,
 				slug: payload.slug,
 				coverImageUrl: payload.coverImageUrl,
+				price: payload.price,
 				description: payload.description
 					? {
 							upsert: {
