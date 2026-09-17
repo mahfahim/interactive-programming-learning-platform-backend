@@ -24,6 +24,11 @@ export const createCourseSchema = z.object({
 		.min(1, "Slug is required")
 		.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Invalid slug format"),
 	coverImageUrl: z.string().url("Invalid image URL").optional(),
+	price: z
+		.number()
+		.nonnegative("Price must be 0 or positive")
+		.optional()
+		.default(0),
 	description: z.object({
 		shortDescription: z
 			.string()
@@ -45,6 +50,7 @@ export const updateCourseSchema = z.object({
 		.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 		.optional(),
 	coverImageUrl: z.string().url().optional(),
+	price: z.number().nonnegative("Price must be 0 or positive").optional(),
 	description: z
 		.object({
 			shortDescription: z.string().min(1).max(500).optional(),

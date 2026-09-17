@@ -58,6 +58,7 @@ const createCourse = async (payload: ICreateCourseInput) => {
 				title: payload.title,
 				slug: payload.slug,
 				coverImageUrl: payload.coverImageUrl,
+				price: payload.price ?? 0,
 				description: {
 					create: {
 						shortDescription: payload.description.shortDescription,

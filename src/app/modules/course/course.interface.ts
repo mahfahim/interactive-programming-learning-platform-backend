@@ -23,6 +23,7 @@ export interface ICreateCourseInput {
 	title: string;
 	slug: string;
 	coverImageUrl?: string;
+	price?: number;
 	description: ICreateCourseDescriptionInput;
 }
 
@@ -30,6 +31,7 @@ export interface IUpdateCourseInput {
 	title?: string;
 	slug?: string;
 	coverImageUrl?: string;
+	price?: number;
 	description?: {
 		shortDescription?: string;
 		fullDescription?: string;
