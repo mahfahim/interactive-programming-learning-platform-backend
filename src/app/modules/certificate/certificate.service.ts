@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import StatusCodes from "http-status-codes";
 import PDFDocument from "pdfkit";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../../generated/prisma/client";
 import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
